@@ -1,21 +1,17 @@
 ```
-# Python
+# Dependencies
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-
-# Dependencies
-venv/
 .venv/
+venv/
 .env
 .env.local
-*.env.*
+.env.*
 
-# Logs
+# Logs and temp files
 *.log
-
-# Temporary files
 *.tmp
 *.swp
 
@@ -23,13 +19,17 @@ venv/
 .vscode/
 .idea/
 
-# Coverage
+# Coverage reports
 .coverage
 coverage/
 htmlcov/
 
-# Distribution / packaging
-dist/
+# Build artifacts
 build/
+dist/
 *.egg-info/
+
+# Testing
+.pytest_cache/
+.mypy_cache/
 ```
