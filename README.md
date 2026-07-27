@@ -4,17 +4,24 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Playwright](https://img.shields.io/badge/Playwright-Latest-green.svg)](https://playwright.dev/)
 
-Script Python untuk melakukan scraping lowongan kerja dari berbagai situs job portal secara otomatis. Dilengkapi dengan **2 mode penggunaan**: Mode Manual (untuk developer) dan Mode Otomatis (untuk pengguna umum).
+Script Python untuk melakukan scraping lowongan kerja dari berbagai situs job portal secara otomatis. Dilengkapi dengan **2 mode penggunaan**: Mode Manual (untuk developer) dan Mode Otomatis (untuk pengguna umum), serta **Auto CV Generator** untuk membuat CV dan surat lamaran yang disesuaikan dengan posisi yang dilamar.
 
 ---
 
 ## ✨ Fitur Utama
 
-### 🎯 Mode Otomatis (Easy Search)
+### 🔍 Easy Search (Mode Otomatis)
 - **Tanpa Edit Kode**: Cukup jalankan dan jawab pertanyaan
 - **Interaktif**: Input posisi, lokasi, dan preferensi langsung dari terminal
 - **Auto-Save**: Hasil otomatis tersimpan dalam format CSV
 - **User-Friendly**: Cocok untuk non-programmer
+
+### 📝 Auto CV Generator
+- **Pilih Lowongan**: Tampilkan daftar lowongan dari hasil scraping
+- **Generate CV Otomatis**: CV disesuaikan dengan posisi dan perusahaan yang dipilih
+- **Cover Letter**: Surat lamaran kerja otomatis
+- **Multi-Format**: Export ke DOCX dan PDF
+- **Data Diri Tersimpan**: Tidak perlu input ulang untuk penggunaan berikutnya
 
 ### 🔧 Mode Manual (Advanced)
 - **Stealth Mode**: Menggunakan playwright-stealth untuk menghindari deteksi bot
@@ -34,8 +41,9 @@ Script Python untuk melakukan scraping lowongan kerja dari berbagai situs job po
   - [Windows](#windows-)
   - [macOS](#macos-)
 - [Cara Penggunaan](#-cara-penggunaan)
-  - [Mode Otomatis (Recommended)](#mode-otomatis-recommended)
-  - [Mode Manual](#mode-manual)
+  - [Mode Otomatis (Easy Search)](#mode-otomatis-easy-search-recommended)
+  - [Auto CV Generator](#auto-cv-generator)
+  - [Mode Manual](#mode-manual-advanced)
 - [Troubleshooting](#-troubleshooting)
 - [Struktur Output](#-struktur-output)
 - [Kontribusi](#-kontribusi)
@@ -251,7 +259,7 @@ arch -arm64 pip install -r requirements.txt
 
 ## 📖 Cara Penggunaan
 
-### Mode Otomatis (Recommended) ⭐
+### Mode Otomatis (Easy Search) ⭐
 
 Cocok untuk semua pengguna, **tanpa perlu edit kode**!
 
@@ -299,53 +307,92 @@ Cocok untuk semua pengguna, **tanpa perlu edit kode**!
 
 5. **Buka file CSV** dengan Excel, Google Sheets, atau aplikasi spreadsheet lainnya
 
-#### Contoh Kasus Nyata:
+---
 
-**Mencari lowongan Administrasi di Jakarta Selatan:**
+### Auto CV Generator 📝
+
+Setelah mendapatkan hasil scraping, generate CV dan surat lamaran secara otomatis!
+
+#### Langkah-langkah:
+
+1. **Jalankan script:**
+   ```bash
+   python3 auto_cv_generator.py
+   ```
+
+2. **Pilih file hasil scraping** dari daftar yang ditampilkan
+
+3. **Pilih lowongan** yang ingin dilamar
+
+4. **Isi data diri** (hanya sekali, akan tersimpan untuk penggunaan berikutnya)
+
+5. **CV dan Cover Letter otomatis dibuat** dalam format DOCX dan PDF
+
+#### Contoh Penggunaan:
 
 ```bash
-$ python3 easy_search.py
+$ python3 auto_cv_generator.py
 
-🔍 PENCARI LOWONGAN KERJA MUDAH
-==================================================
+============================================================
+🎯 AUTO CV GENERATOR - JOBSTREET
+============================================================
 
-1. Mau cari posisi apa? (contoh: Administrasi, Staff, Driver): Administrasi
+📁 MENCARI FILE HASIL SCRAPING di folder 'carilokermu'
+============================================================
 
-2. Di kota/daerah mana? (contoh: Jakarta, Surabaya, Bandung): Jakarta Selatan
+[1] 📄 loker_administrasi_20240115_143022.csv
+    Jumlah lowongan: 45
+    Preview:
+      1. Staff Administrasi - PT Maju Jaya (Jakarta Selatan)
+      2. Admin Officer - CV Berkah (Bandung)
+      ...
 
-3. Mau ambil berapa halaman hasil? (default 3, max 10): [tekan Enter untuk default]
+Pilih file (1-2): 1
 
-4. Tampilkan browser saat mencari? (y/n, default n): [tekan Enter untuk default]
+✅ File terpilih: loker_administrasi_20240115_143022.csv
 
-==================================================
-📋 Ringkasan Pencarian:
-   • Posisi: Administrasi
-   • Lokasi: Jakarta Selatan
-   • Halaman: 3
-   • Mode: Silent
-==================================================
+📋 DAFTAR LOWONGAN TERSEDIA
+============================================================
 
-Lanjutkan pencarian? (y/n): y
+[1] Staff Administrasi
+    🏢 PT Maju Jaya
+    📍 Jakarta Selatan
+    💰 Rp 5-7 juta
 
-🚀 Memulai pencarian: 'Administrasi' di https://id.jobstreet.com/id/jobs/in-jakarta-selatan
-📄 Maksimum 3 halaman
-📑 Scraping halaman 1/3
-   Found 15 jobs dengan selector: article
-   ✅ Ditemukan 15 total lowongan sampai sekarang
+[2] Admin Officer
+    🏢 CV Berkah
+    📍 Bandung
+    ...
+
+Pilih lowongan yang ingin dilamar (1-20): 1
+
+✅ Lowongan terpilih:
+   📌 Staff Administrasi
+   🏢 PT Maju Jaya
+   📍 Jakarta Selatan
+
+👤 ISI DATA DIRI ANDA
+(Tekan Enter untuk melewati field opsional)
 ...
-✅ Berhasil menyimpan 45 lowongan ke file: loker_administrasi_20240115_143022.csv
 
-==================================================
+✅ CV DOCX: /path/to/cv_generated/CV_Anda_Staff_Administrasi_20240115_143022.docx
+✅ CV PDF: /path/to/cv_generated/CV_Anda_Staff_Administrasi_20240115_143022.pdf
+✅ Cover Letter: /path/to/cv_generated/CoverLetter_Anda_Staff_Administrasi_20240115_143022.docx
+
+============================================================
 🎉 SELESAI!
-   Total lowongan ditemukan: 45
-   File hasil: loker_administrasi_20240115_143022.csv
-   Buka file tersebut dengan Excel atau Google Sheets
-==================================================
+============================================================
 ```
+
+#### Tips:
+- Data diri tersimpan di `carilokermu/data_diri.json`
+- Tidak perlu input ulang untuk penggunaan berikutnya
+- Review CV sebelum mengirim ke perusahaan
+- Sesuaikan jika ada informasi spesifik dari perusahaan
 
 ---
 
-### Mode Manual 🔧
+### Mode Manual (Advanced) 🔧
 
 Untuk developer yang ingin kustomisasi lebih lanjut.
 
@@ -500,6 +547,8 @@ arch -arm64 pip install -r requirements.txt
 
 ## 📁 Struktur Output
 
+### File CSV (Hasil Scraping)
+
 File CSV berisi kolom-kolom berikut:
 
 | Kolom | Deskripsi |
@@ -517,6 +566,23 @@ File CSV berisi kolom-kolom berikut:
 no,judul,perusahaan,lokasi,gaji,link,tanggal_scrape
 1,Staff Administrasi,PT Maju Jaya,Jakarta Selatan,Rp 5-7 juta,https://...,2024-01-15 14:30:22
 2,Admin Officer,CV Berkah,Bandung,-,https://...,2024-01-15 14:30:22
+```
+
+### File CV & Cover Letter (Auto CV Generator)
+
+Setelah menggunakan Auto CV Generator, file akan tersimpan di folder `carilokermu/cv_generated/`:
+
+| File | Format | Deskripsi |
+|------|--------|-----------|
+| `CV_Nama_Posisi_TIMESTAMP.docx` | DOCX | CV format Word, dapat diedit |
+| `CV_Nama_Posisi_TIMESTAMP.pdf` | PDF | CV format PDF, siap kirim |
+| `CoverLetter_Nama_Posisi_TIMESTAMP.docx` | DOCX | Surat lamaran kerja |
+
+**Contoh nama file:**
+```
+CV_Anda_Staff_Administrasi_20240115_143022.docx
+CV_Anda_Staff_Administrasi_20240115_143022.pdf
+CoverLetter_Anda_Staff_Administrasi_20240115_143022.docx
 ```
 
 ---
@@ -571,10 +637,20 @@ Gunakan script ini dengan bijak dan bertanggung jawab:
 
 ## 📦 Dependencies
 
+### Utama:
 - [pandas](https://pandas.pydata.org/) - Manipulasi dan export data
 - [playwright](https://playwright.dev/) - Browser automation
 - [playwright-stealth](https://github.com/AtuboDad/playwright-stealth) - Stealth mode
 - [selectolax](https://github.com/rushter/selectolax) - HTML parsing cepat
+
+### Auto CV Generator:
+- [python-docx](https://python-docx.readthedocs.io/) - Membuat file DOCX
+- [reportlab](https://www.reportlab.com/) - Membuat file PDF
+
+Install semua dependencies dengan:
+```bash
+pip install -r requirements.txt
+```
 
 ---
 
@@ -603,17 +679,24 @@ Jika mengalami masalah:
 | Jalankan mode otomatis | `python3 easy_search.py` | `python easy_search.py` |
 | Jalankan mode manual | `python3 main.py` | `python main.py` |
 | Aktifkan venv | `source venv/bin/activate` | `.\venv\Scripts\Activate.ps1` |
+| Generate CV | `python3 auto_cv_generator.py` | `python auto_cv_generator.py` |
 
 ### Struktur Folder
 
 ```
 job-scraper/
-├── README.md           # Dokumentasi ini
-├── requirements.txt    # Dependencies Python
-├── easy_search.py     # Mode otomatis (recommended)
-├── main.py            # Mode manual (advanced)
-├── .gitignore         # Git ignore rules
-└── *.csv              # Output files (auto-generated)
+├── README.md                 # Dokumentasi ini
+├── requirements.txt          # Dependencies Python
+├── easy_search.py            # Mode otomatis (recommended)
+├── main.py                   # Mode manual (advanced)
+├── auto_cv_selector.py       # Pilih lowongan & generate CV
+├── auto_cv_generator.py      # Generate CV lengkap
+├── .gitignore                # Git ignore rules
+├── carilokermu/              # Folder data & output
+│   ├── data_diri.json        # Data diri (auto-generated)
+│   ├── cv_generated/         # CV & Cover Letter (auto-generated)
+│   └── *.csv                 # Hasil scraping (auto-generated)
+└── *.csv                     # Output files (auto-generated)
 ```
 
 ---
