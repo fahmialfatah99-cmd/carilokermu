@@ -1,0 +1,1966 @@
+$ view /workspace
+$ view /workspace
+Here's the files and directories up to 2 levels deep in /workspace, excluding hidden items:
+/workspace/
+/workspace/README.md
+/workspace/__pycache__/
+/workspace/__pycache__/main.cpython-312.pyc
+/workspace/easy_search.py
+/workspace/main.py
+/workspace/requirements.txt
+2 hidden files/directories in this directory are excluded. You can use 'ls -la /workspace' to see them.
+$ view /workspace/main.py
+$ view /workspace/main.py
+Here's the result of running `cat -n` on /workspace/main.py:
+     1	"""
+     2	Scraper Lowongan Kerja (Job Scraper)
+     3	
+     4	Script ini menggunakan Playwright untuk melakukan scraping lowongan kerja
+     5	dari berbagai situs job portal. Dilengkapi dengan stealth mode untuk menghindari deteksi bot.
+     6	"""
+     7	
+     8	import pandas as pd
+     9	from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
+    10	from playwright_stealth import stealth_sync
+    11	from selectolax.parser import HTML
+    12	from typing import List, Dict, Optional
+    13	import logging
+    14	
+    15	# Konfigurasi logging
+    16	logging.basicConfig(
+    17	    level=logging.INFO,
+    18	    format='%(asctime)s - %(levelname)s - %(message)s'
+    19	)
+    20	logger = logging.getLogger(__name__)
+    21	
+    22	
+    23	def scrape_loker(url_target: str, keyword: str, max_pages: int = 3) -> List[Dict[str, str]]:
+    24	    """
+    25	    Scraping lowongan kerja dari situs target.
+    26	    
+    27	    Args:
+    28	        url_target: URL dasar situs lowongan kerja (contoh: https://example.com)
+    29	        keyword: Kata kunci pencarian (posisi/jabatan)
+    30	        max_pages: Jumlah maksimal halaman yang akan di-scrape
+    31	    
+    32	    Returns:
+    33	        List of dict berisi data lowongan dengan key: Posisi, Perusahaan, Link, Lokasi
+    34	    """
+    35	    logger.info(f"Mencari lowongan untuk: {keyword}...")
+    36	    data_loker = []
+    37	    
+    38	    try:
+    39	        with sync_playwright() as p:
+    40	            browser = p.chromium.launch(headless=True)
+    41	            context = browser.new_context(
+    42	                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    43	            )
+    44	            page = context.new_page()
+    45	            stealth_sync(page)  # Menyamar sebagai browser asli
+    46	            
+    47	            # Coba beberapa pola URL umum
+    48	            url_patterns = [
+    49	                f"{url_target}/jobs?q={keyword}",
+    50	                f"{url_target}/search?q={keyword}",
+    51	                f"{url_target}/job/search?keyword={keyword}",
+    52	                f"{url_target}?q={keyword}"
+    53	            ]
+    54	            
+    55	            success = False
+    56	            for pattern in url_patterns:
+    57	                try:
+    58	                    logger.info(f"Mencoba URL: {pattern}")
+    59	                    page.goto(pattern, timeout=60000, wait_until="domcontentloaded")
+    60	                    page.wait_for_load_state("networkidle", timeout=30000)
+    61	                    success = True
+    62	                    break
+    63	                except PlaywrightTimeoutError:
+    64	                    logger.warning(f"Timeout pada URL: {pattern}, mencoba pola berikutnya...")
+    65	                    continue
+    66	            
+    67	            if not success:
+    68	                logger.error("Gagal mengakses semua pola URL")
+    69	                browser.close()
+    70	                return data_loker
+    71	            
+    72	            # Scroll halaman untuk memuat konten dinamis
+    73	            page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+    74	            page.wait_for_timeout(2000)  # Tunggu 2 detik setelah scroll
+    75	            
+    76	            tree = HTML(page.content())
+    77	            
+    78	            # --- SESUAIKAN CSS SELECTOR DI BAWAH INI DENGAN WEBSITE TARGET ---
+    79	            # Contoh struktur umum (misal: Glints/Jobstreet/LinkedIn)
+    80	            selectors = {
+    81	                'card': ['.job-card', '.job-item', '[data-testid="job-card"]', '.job-listing', '.vacancy-card'],
+    82	                'title': ['h2', 'h3', '.job-title', 'a.title', '.position-title'],
+    83	                'company': ['.company-name', '.company', 'span.company', '.employer-name'],
+    84	                'link': ['a[href*="/job/"]', 'a.job-link', 'a[href*="/jobs/"]', '.job-link a'],
+    85	                'location': ['.location', '.job-location', 'span.location', '.city']
+    86	            }
+    87	            
+    88	            job_cards = []
+    89	            for card_selector in selectors['card']:
+    90	                job_cards = tree.css(card_selector)
+    91	                if job_cards:
+    92	                    break
+    93	            
+    94	            for card in job_cards:
+    95	                title_el = None
+    96	                company_el = None
+    97	                link_el = None
+    98	                location_el = None
+    99	                
+   100	                # Cari elemen dengan berbagai selector
+   101	                for title_selector in selectors['title']:
+   102	                    title_el = card.css_first(title_selector)
+   103	                    if title_el:
+   104	                        break
+   105	                
+   106	                for company_selector in selectors['company']:
+   107	                    company_el = card.css_first(company_selector)
+   108	                    if company_el:
+   109	                        break
+   110	                
+   111	                for link_selector in selectors['link']:
+   112	                    link_el = card.css_first(link_selector)
+   113	                    if link_el:
+   114	                        break
+   115	                
+   116	                for location_selector in selectors['location']:
+   117	                    location_el = card.css_first(location_selector)
+   118	                    if location_el:
+   119	                        break
+   120	                
+   121	                if title_el:
+   122	                    link = link_el.attributes.get('href') if link_el else "N/A"
+   123	                    # Pastikan link absolut
+   124	                    if link != "N/A" and not link.startswith('http'):
+   125	                        link = url_target + link if link.startswith('/') else f"{url_target}/{link}"
+   126	                    
+   127	                    data_loker.append({
+   128	                        "Posisi": title_el.text(strip=True),
+   129	                        "Perusahaan": company_el.text(strip=True) if company_el else "N/A",
+   130	                        "Lokasi": location_el.text(strip=True) if location_el else "N/A",
+   131	                        "Link": link
+   132	                    })
+   133	            # ------------------------------------------------------------------
+   134	            
+   135	            logger.info(f"Ditemukan {len(data_loker)} lowongan dari halaman pertama")
+   136	            
+   137	            # Scraping halaman berikutnya (jika ada)
+   138	            for page_num in range(2, max_pages + 1):
+   139	                try:
+   140	                    next_button = page.css_first('a.next, button.next, .pagination-next a, [rel="next"]')
+   141	                    if not next_button:
+   142	                        logger.info(f"Tidak ada halaman berikutnya setelah halaman {page_num - 1}")
+   143	                        break
+   144	                    
+   145	                    next_link = next_button.attributes.get('href')
+   146	                    if next_link:
+   147	                        page.goto(next_link, timeout=60000, wait_until="domcontentloaded")
+   148	                        page.wait_for_load_state("networkidle", timeout=30000)
+   149	                        page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+   150	                        page.wait_for_timeout(2000)
+   151	                        
+   152	                        tree = HTML(page.content())
+   153	                        # Proses kartu lowongan seperti sebelumnya
+   154	                        for card_selector in selectors['card']:
+   155	                            job_cards = tree.css(card_selector)
+   156	                            if job_cards:
+   157	                                break
+   158	                        
+   159	                        for card in job_cards:
+   160	                            # (Proses yang sama seperti di atas)
+   161	                            title_el = None
+   162	                            company_el = None
+   163	                            link_el = None
+   164	                            location_el = None
+   165	                            
+   166	                            for title_selector in selectors['title']:
+   167	                                title_el = card.css_first(title_selector)
+   168	                                if title_el:
+   169	                                    break
+   170	                            
+   171	                            for company_selector in selectors['company']:
+   172	                                company_el = card.css_first(company_selector)
+   173	                                if company_el:
+   174	                                    break
+   175	                            
+   176	                            for link_selector in selectors['link']:
+   177	                                link_el = card.css_first(link_selector)
+   178	                                if link_el:
+   179	                                    break
+   180	                            
+   181	                            for location_selector in selectors['location']:
+   182	                                location_el = card.css_first(location_selector)
+   183	                                if location_el:
+   184	                                    break
+   185	                            
+   186	                            if title_el:
+   187	                                link = link_el.attributes.get('href') if link_el else "N/A"
+   188	                                if link != "N/A" and not link.startswith('http'):
+   189	                                    link = url_target + link if link.startswith('/') else f"{url_target}/{link}"
+   190	                                
+   191	                                data_loker.append({
+   192	                                    "Posisi": title_el.text(strip=True),
+   193	                                    "Perusahaan": company_el.text(strip=True) if company_el else "N/A",
+   194	                                    "Lokasi": location_el.text(strip=True) if location_el else "N/A",
+   195	                                    "Link": link
+   196	                                })
+   197	                        
+   198	                        logger.info(f"Total sementara: {len(data_loker)} lowongan")
+   199	                    else:
+   200	                        break
+   201	                except Exception as e:
+   202	                    logger.warning(f"Error saat mengakses halaman {page_num}: {e}")
+   203	                    break
+   204	            
+   205	            browser.close()
+   206	            
+   207	    except Exception as e:
+   208	        logger.error(f"Terjadi kesalahan: {e}")
+   209	    
+   210	    return data_loker
+   211	
+   212	
+   213	def save_to_csv( List[Dict[str, str]], filename: str = "hasil_loker.csv") -> bool:
+   214	    """
+   215	    Menyimpan data lowongan ke file CSV.
+   216	    
+   217	    Args:
+   218	         List of dict berisi data lowongan
+   219	        filename: Nama file output
+   220	    
+   221	    Returns:
+   222	        True jika berhasil, False jika gagal
+   223	    """
+   224	    if not 
+   225	        logger.warning("Tidak ada data untuk disimpan")
+   226	        return False
+   227	    
+   228	    try:
+   229	        df = pd.DataFrame(data)
+   230	        df.to_csv(filename, index=False, encoding="utf-8-sig")
+   231	        logger.info(f"Berhasil menyimpan {len(data)} lowongan ke '{filename}'")
+   232	        return True
+   233	    except Exception as e:
+   234	        logger.error(f"Gagal menyimpan ke CSV: {e}")
+   235	        return False
+   236	
+   237	
+   238	def main():
+   239	    """Fungsi utama untuk menjalankan scraper."""
+   240	    # Ganti dengan URL situs loker target (contoh: situs internal, Glints, dll)
+   241	    TARGET_SITE = "https://contoh-situs-loker.com" 
+   242	    KEYWORD = "Data Analyst"
+   243	    MAX_PAGES = 3
+   244	    OUTPUT_FILE = "hasil_loker.csv"
+   245	    
+   246	    hasil = scrape_loker(TARGET_SITE, KEYWORD, max_pages=MAX_PAGES)
+   247	    
+   248	    if hasil:
+   249	        save_to_csv(hasil, OUTPUT_FILE)
+   250	        print(f"\n{'='*50}")
+   251	        print(f"Scraping selesai!")
+   252	        print(f"Total lowongan ditemukan: {len(hasil)}")
+   253	        print(f"Data tersimpan di: {OUTPUT_FILE}")
+   254	        print(f"{'='*50}")
+   255	    else:
+   256	        print("\nTidak ada hasil. Periksa:")
+   257	        print("  1. CSS Selector sesuai dengan website target")
+   258	        print("  2. URL target dapat diakses")
+   259	        print("  3. Struktur HTML website target")
+   260	
+   261	
+   262	if __name__ == "__main__":
+   263	    main()
+   264	
+$ view /workspace/easy_search.py
+$ view /workspace/easy_search.py
+Here's the result of running `cat -n` on /workspace/easy_search.py:
+     1	#!/usr/bin/env python3
+     2	"""
+     3	Script Mudah Pencari Lowongan Kerja
+     4	Cara Pakai:
+     5	1. Jalankan: python3 easy_search.py
+     6	2. Ikuti pertanyaan yang muncul
+     7	3. Hasil otomatis tersimpan di file CSV
+     8	"""
+     9	
+    10	import csv
+    11	import logging
+    12	from datetime import datetime
+    13	from typing import List, Dict, Optional
+    14	from urllib.parse import urljoin, urlparse
+    15	
+    16	try:
+    17	    from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
+    18	except ImportError:
+    19	    print("❌ Error: Playwright belum terinstall!")
+    20	    print("   Jalankan: pip install playwright")
+    21	    print("   Lalu: playwright install chromium")
+    22	    exit(1)
+    23	
+    24	# Setup logging
+    25	logging.basicConfig(
+    26	    level=logging.INFO,
+    27	    format='%(asctime)s - %(levelname)s - %(message)s'
+    28	)
+    29	logger = logging.getLogger(__name__)
+    30	
+    31	def tanyakan_input():
+    32	    """Meminta input dari user dengan cara mudah"""
+    33	    print("\n" + "="*50)
+    34	    print("🔍 PENCARI LOWONGAN KERJA MUDAH")
+    35	    print("="*50)
+    36	    
+    37	    # Pertanyaan 1: Posisi
+    38	    posisi = input("\n1. Mau cari posisi apa? (contoh: Administrasi, Staff, Driver): ")
+    39	    if not posisi.strip():
+    40	        posisi = "Umum"
+    41	    
+    42	    # Pertanyaan 2: Lokasi
+    43	    lokasi = input("2. Di kota/daerah mana? (contoh: Jakarta, Surabaya, Bandung): ")
+    44	    if not lokasi.strip():
+    45	        lokasi = "Indonesia"
+    46	    
+    47	    # Pertanyaan 3: Jumlah halaman
+    48	    try:
+    49	        halaman = input("3. Mau ambil berapa halaman hasil? (default 3, max 10): ")
+    50	        if not halaman.strip():
+    51	            halaman = 3
+    52	        else:
+    53	            halaman = int(halaman)
+    54	            if halaman > 10:
+    55	                halaman = 10
+    56	                print("   → Dibatasi maksimal 10 halaman")
+    57	    except ValueError:
+    58	        halaman = 3
+    59	        print("   → Input tidak valid, menggunakan default 3 halaman")
+    60	    
+    61	    # Pertanyaan 4: Mode browser
+    62	    mode = input("4. Tampilkan browser saat mencari? (y/n, default n): ").lower()
+    63	    headless = mode != 'y'
+    64	    
+    65	    print("\n" + "="*50)
+    66	    print(f"📋 Ringkasan Pencarian:")
+    67	    print(f"   • Posisi: {posisi}")
+    68	    print(f"   • Lokasi: {lokasi}")
+    69	    print(f"   • Halaman: {halaman}")
+    70	    print(f"   • Mode: {'Tampil' if not headless else 'Silent'}")
+    71	    print("="*50)
+    72	    
+    73	    konfirmasi = input("\nLanjutkan pencarian? (y/n): ").lower()
+    74	    if konfirmasi != 'y':
+    75	        return None
+    76	    
+    77	    return {
+    78	        'keyword': posisi,
+    79	        'location': lokasi,
+    80	        'max_pages': halaman,
+    81	        'headless': headless
+    82	    }
+    83	
+    84	def buat_url_pencarian(keyword: str, location: str) -> str:
+    85	    """Membuat URL pencarian JobStreet berdasarkan keyword dan lokasi"""
+    86	    # Format URL JobStreet Indonesia
+    87	    location_slug = location.lower().replace(' ', '-')
+    88	    base_url = "https://id.jobstreet.com/id/jobs"
+    89	    
+    90	    # Coba format URL dengan lokasi
+    91	    if location and location.lower() != 'indonesia':
+    92	        url = f"{base_url}/in-{location_slug}"
+    93	    else:
+    94	        url = base_url
+    95	    
+    96	    return url
+    97	
+    98	def scrape_loker(url: str, keyword: str, max_pages: int = 3, headless: bool = True) -> List[Dict]:
+    99	    """Scrape lowongan kerja dari website"""
+   100	    all_jobs = []
+   101	    
+   102	    logger.info(f"🚀 Memulai pencarian: '{keyword}' di {url}")
+   103	    logger.info(f"📄 Maksimum {max_pages} halaman")
+   104	    
+   105	    with sync_playwright() as p:
+   106	        # Launch browser
+   107	        browser = p.chromium.launch(headless=headless)
+   108	        context = browser.new_context(
+   109	            user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+   110	        )
+   111	        page = context.new_page()
+   112	        
+   113	        try:
+   114	            # Kunjungi halaman pertama
+   115	            page.goto(url, timeout=60000, wait_until='domcontentloaded')
+   116	            page.wait_for_timeout(3000)  # Tunggu loading
+   117	            
+   118	            # Cari input search jika ada
+   119	            try:
+   120	                search_input = page.locator('input[placeholder*="cari"], input[name*="search"], input[type="search"]').first
+   121	                if search_input.is_visible():
+   122	                    search_input.fill(keyword)
+   123	                    
+   124	                    # Klik tombol search
+   125	                    search_button = page.locator('button[type="submit"], button:has-text("Cari"), button:has-text("Search"), .search-button').first
+   126	                    if search_button.is_visible():
+   127	                        search_button.click()
+   128	                        page.wait_for_timeout(3000)
+   129	                        logger.info("✅ Keyword dimasukkan dan search diklik")
+   130	            except Exception as e:
+   131	                logger.warning(f"⚠️ Tidak bisa input keyword otomatis: {e}")
+   132	                logger.info("   Melanjutkan dengan URL saat ini...")
+   133	            
+   134	            # Loop melalui halaman
+   135	            for page_num in range(1, max_pages + 1):
+   136	                logger.info(f"📑 Scraping halaman {page_num}/{max_pages}")
+   137	                
+   138	                # Tunggu konten loaded
+   139	                page.wait_for_timeout(2000)
+   140	                
+   141	                # Ambil semua job listing
+   142	                # Coba berbagai selector umum
+   143	                selectors = [
+   144	                    'article', 
+   145	                    '.job-card', 
+   146	                    '[data-automation="jobCard"]',
+   147	                    '.job-listing',
+   148	                    'div[class*="job"]',
+   149	                    'section[class*="job"]'
+   150	                ]
+   151	                
+   152	                job_elements = []
+   153	                for selector in selectors:
+   154	                    elements = page.locator(selector).all()
+   155	                    if elements:
+   156	                        job_elements = elements
+   157	                        logger.info(f"   Found {len(elements)} jobs dengan selector: {selector}")
+   158	                        break
+   159	                
+   160	                if not job_elements:
+   161	                    # Fallback: ambil semua div yang mungkin job card
+   162	                    job_elements = page.locator('div').filter(has_text=keyword).all()[:20]
+   163	                
+   164	                # Ekstrak data dari setiap elemen
+   165	                for idx, element in enumerate(job_elements):
+   166	                    try:
+   167	                        # Judul pekerjaan
+   168	                        title_selectors = ['h1', 'h2', 'h3', 'a', '[data-automation="jobTitle"]', '.job-title']
+   169	                        title = ""
+   170	                        for ts in title_selectors:
+   171	                            try:
+   172	                                title_elem = element.locator(ts).first
+   173	                                if title_elem.is_visible():
+   174	                                    title = title_elem.inner_text().strip()
+   175	                                    if title:
+   176	                                        break
+   177	                            except:
+   178	                                continue
+   179	                        
+   180	                        if not title or len(title) < 3:
+   181	                            continue
+   182	                        
+   183	                        # Perusahaan
+   184	                        company_selectors = ['[data-automation="jobCompany"]', '.company-name', 'span[class*="company"]']
+   185	                        company = ""
+   186	                        for cs in company_selectors:
+   187	                            try:
+   188	                                company_elem = element.locator(cs).first
+   189	                                if company_elem.is_visible():
+   190	                                    company = company_elem.inner_text().strip()
+   191	                                    if company:
+   192	                                        break
+   193	                            except:
+   194	                                continue
+   195	                        
+   196	                        # Lokasi
+   197	                        location_selectors = ['[data-automation="jobLocation"]', '.job-location', 'span[class*="location"]']
+   198	                        location = ""
+   199	                        for ls in location_selectors:
+   200	                            try:
+   201	                                location_elem = element.locator(ls).first
+   202	                                if location_elem.is_visible():
+   203	                                    location = location_elem.inner_text().strip()
+   204	                                    if location:
+   205	                                        break
+   206	                            except:
+   207	                                continue
+   208	                        
+   209	                        # Link detail
+   210	                        link = ""
+   211	                        try:
+   212	                            link_elem = element.locator('a[href*="/job/"], a[href*="/jobs/"]').first
+   213	                            if link_elem.is_visible():
+   214	                                href = link_elem.get_attribute('href')
+   215	                                if href:
+   216	                                    link = urljoin(url, href)
+   217	                        except:
+   218	                            pass
+   219	                        
+   220	                        # Gaji (opsional)
+   221	                        salary = ""
+   222	                        try:
+   223	                            salary_elem = element.locator('[data-automation="jobSalary"], .salary, span[class*="salary"]').first
+   224	                            if salary_elem.is_visible():
+   225	                                salary = salary_elem.inner_text().strip()
+   226	                        except:
+   227	                            pass
+   228	                        
+   229	                        job_data = {
+   230	                            'no': len(all_jobs) + 1,
+   231	                            'judul': title,
+   232	                            'perusahaan': company,
+   233	                            'lokasi': location if location else 'Tidak disebutkan',
+   234	                            'gaji': salary if salary else '-',
+   235	                            'link': link if link else url,
+   236	                            'tanggal_scrape': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+   237	                        }
+   238	                        
+   239	                        all_jobs.append(job_data)
+   240	                        
+   241	                    except Exception as e:
+   242	                        logger.debug(f"   Skip element {idx}: {e}")
+   243	                        continue
+   244	                
+   245	                logger.info(f"   ✅ Ditemukan {len(all_jobs)} total lowongan sampai sekarang")
+   246	                
+   247	                # Coba pindah ke halaman berikutnya
+   248	                if page_num < max_pages:
+   249	                    next_selectors = [
+   250	                        'a:has-text("Next")',
+   251	                        'a:has-text("Berikutnya")',
+   252	                        'button:has-text("Next")',
+   253	                        '.pagination-next',
+   254	                        '[aria-label="Next page"]'
+   255	                    ]
+   256	                    
+   257	                    next_button = None
+   258	                    for ns in next_selectors:
+   259	                        try:
+   260	                            next_button = page.locator(ns).first
+   261	                            if next_button.is_visible():
+   262	                                break
+   263	                            next_button = None
+   264	                        except:
+   265	                            continue
+   266	                    
+   267	                    if next_button:
+   268	                        next_button.click()
+   269	                        page.wait_for_timeout(3000)
+   270	                        logger.info("   → Pindah ke halaman berikutnya")
+   271	                    else:
+   272	                        logger.info("   ⚠️ Tidak ada halaman berikutnya atau sudah akhir")
+   273	                        break
+   274	                        
+   275	        except PlaywrightTimeout:
+   276	            logger.error("⏰ Timeout: Website terlalu lama merespon")
+   277	        except Exception as e:
+   278	            logger.error(f"❌ Error: {e}")
+   279	        finally:
+   280	            browser.close()
+   281	    
+   282	    return all_jobs
+   283	
+   284	def simpan_ke_csv( List[Dict], nama_file: str):
+   285	    """Simpan data ke file CSV"""
+   286	    if not 
+   287	        logger.warning("⚠️ Tidak ada data untuk disimpan")
+   288	        return False
+   289	    
+   290	    try:
+   291	        with open(nama_file, 'w', newline='', encoding='utf-8-sig') as f:
+   292	            fieldnames = ['no', 'judul', 'perusahaan', 'lokasi', 'gaji', 'link', 'tanggal_scrape']
+   293	            writer = csv.DictWriter(f, fieldnames=fieldnames)
+   294	            writer.writeheader()
+   295	            writer.writerows(data)
+   296	        
+   297	        logger.info(f"✅ Berhasil menyimpan {len(data)} lowongan ke file: {nama_file}")
+   298	        return True
+   299	    except Exception as e:
+   300	        logger.error(f"❌ Gagal menyimpan file: {e}")
+   301	        return False
+   302	
+   303	def main():
+   304	    """Fungsi utama"""
+   305	    # Minta input dari user
+   306	    config = tanyakan_input()
+   307	    
+   308	    if not config:
+   309	        print("\n❌ Pencarian dibatalkan")
+   310	        return
+   311	    
+   312	    # Buat URL pencarian
+   313	    base_url = buat_url_pencarian(config['keyword'], config['location'])
+   314	    
+   315	    # Jalankan scraping
+   316	    results = scrape_loker(
+   317	        url=base_url,
+   318	        keyword=config['keyword'],
+   319	        max_pages=config['max_pages'],
+   320	        headless=config['headless']
+   321	    )
+   322	    
+   323	    # Simpan hasil
+   324	    if results:
+   325	        nama_file = f"loker_{config['keyword'].lower().replace(' ', '_')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+   326	        simpan_ke_csv(results, nama_file)
+   327	        
+   328	        print("\n" + "="*50)
+   329	        print("🎉 SELESAI!")
+   330	        print(f"   Total lowongan ditemukan: {len(results)}")
+   331	        print(f"   File hasil: {nama_file}")
+   332	        print("   Buka file tersebut dengan Excel atau Google Sheets")
+   333	        print("="*50 + "\n")
+   334	    else:
+   335	        print("\n❌ Tidak menemukan lowongan kerja. Coba kata kunci lain.")
+   336	
+   337	if __name__ == "__main__":
+   338	    try:
+   339	        main()
+   340	    except KeyboardInterrupt:
+   341	        print("\n\n⚠️ Program dihentikan oleh user")
+   342	    except Exception as e:
+   343	        print(f"\n❌ Error tak terduga: {e}")
+   344	        print("   Pastikan playwright sudah terinstall:")
+   345	        print("   pip install playwright")
+   346	        print("   playwright install chromium")
+   347	
+$ view /workspace/README.md
+Here's the result of running `cat -n` on /workspace/README.md:
+     1	# Job Scraper - Scraper Lowongan Kerja
+     2	
+     3	Script Python untuk melakukan scraping lowongan kerja dari berbagai situs job portal menggunakan Playwright dengan stealth mode.
+     4	
+     5	## 📋 Fitur
+     6	
+     7	- **Stealth Mode**: Menggunakan playwright-stealth untuk menghindari deteksi bot
+     8	- **Multi-URL Pattern**: Mencoba beberapa pola URL otomatis untuk kompatibilitas lebih baik
+     9	- **Pagination Support**: Mendukung scraping multiple halaman
+    10	- **Dynamic Content**: Menangani konten yang dimuat secara dinamis dengan JavaScript
+    11	- **Logging**: Sistem logging terintegrasi untuk monitoring proses
+    12	- **Export CSV**: Hasil scraping dapat disimpan ke file CSV
+    13	- **Flexible Selectors**: Multiple CSS selectors untuk kompatibilitas dengan berbagai website
+    14	
+    15	## 🚀 Instalasi
+    16	
+    17	### Prasyarat
+    18	
+    19	- Python 3.8 atau lebih tinggi
+    20	- Chromium browser (akan diinstall otomatis oleh Playwright)
+    21	
+    22	---
+    23	
+    24	## 🐧 Panduan Instalasi untuk Linux
+    25	
+    26	### Quick Start (Ubuntu/Debian)
+    27	
+    28	```bash
+    29	# 1. Install dependencies sistem
+    30	sudo apt update
+    31	sudo apt install python3 python3-pip python3-venv -y
+    32	
+    33	# 2. Clone atau download project ini
+    34	cd /path/ke/folder/proyek
+    35	
+    36	# 3. Buat virtual environment
+    37	python3 -m venv venv
+    38	source venv/bin/activate
+    39	
+    40	# 4. Install dependencies Python
+    41	pip install -r requirements.txt
+    42	
+    43	# 5. Install browser dan dependencies sistem
+    44	playwright install chromium
+    45	playwright install-deps chromium
+    46	
+    47	# 6. Edit konfigurasi (pilih salah satu):
+    48	#    - Pakai nano: nano main.py
+    49	#    - Pakai VS Code: code main.py
+    50	#    - Pakai gedit (GUI): gedit main.py &
+    51	#    - Pakai mousepad: mousepad main.py &
+    52	#    Atau buka file main.py dengan text editor favorit Anda
+    53	
+    54	# 7. Jalankan scraper
+    55	python3 main.py
+    56	```
+    57	
+    58	### Langkah Detail per Distro Linux
+    59	
+    60	#### 1. Install Python dan pip (jika belum terinstall)
+    61	
+    62	**Ubuntu/Debian:**
+    63	```bash
+    64	sudo apt update
+    65	sudo apt install python3 python3-pip python3-venv -y
+    66	```
+    67	
+    68	**Fedora/RHEL/CentOS:**
+    69	```bash
+    70	sudo dnf install python3 python3-pip -y
+    71	```
+    72	
+    73	**Arch Linux/Manjaro:**
+    74	```bash
+    75	sudo pacman -S python python-pip python-virtualenv
+    76	```
+    77	
+    78	**openSUSE:**
+    79	```bash
+    80	sudo zypper install python3 python3-pip python3-virtualenv
+    81	```
+    82	
+    83	#### 2. Buat virtual environment (direkomendasikan)
+    84	
+    85	```bash
+    86	cd /path/ke/folder/proyek
+    87	python3 -m venv venv
+    88	source venv/bin/activate
+    89	```
+    90	
+    91	#### 3. Install dependencies
+    92	
+    93	```bash
+    94	pip install -r requirements.txt
+    95	```
+    96	
+    97	Atau install manual:
+    98	```bash
+    99	pip install pandas playwright playwright-stealth selectolax
+   100	```
+   101	
+   102	#### 4. Install browser Playwright dan dependencies sistem
+   103	
+   104	```bash
+   105	# Install browser Chromium
+   106	playwright install chromium
+   107	
+   108	# Install dependencies sistem yang diperlukan (hanya sekali)
+   109	playwright install-deps chromium
+   110	```
+   111	
+   112	> **Catatan:** Perintah `playwright install-deps` akan menginstall package sistem seperti `libnss3`, `libatk-bridge2.0-0`, dll yang diperlukan untuk menjalankan browser.
+   113	
+   114	---
+   115	
+   116	## 🪟 Panduan Instalasi untuk Windows
+   117	
+   118	### Quick Start (Windows 10/11)
+   119	
+   120	```powershell
+   121	# 1. Install Python dari https://python.org (centang "Add Python to PATH")
+   122	
+   123	# 2. Buka PowerShell atau Command Prompt sebagai Administrator
+   124	cd C:\path\ke\folder\proyek
+   125	
+   126	# 3. Buat virtual environment
+   127	python -m venv venv
+   128	
+   129	# 4. Aktifkan virtual environment
+   130	.\venv\Scripts\Activate.ps1
+   131	
+   132	# 5. Install dependencies Python
+   133	pip install -r requirements.txt
+   134	
+   135	# 6. Install browser Chromium
+   136	playwright install chromium
+   137	
+   138	# 7. Edit konfigurasi (pilih salah satu):
+   139	#    - Pakai Notepad: notepad main.py
+   140	#    - Pakai Notepad++: notepad++.exe main.py
+   141	#    - Pakai VS Code: code main.py
+   142	#    Atau buka file main.py dengan text editor favorit Anda
+   143	
+   144	# 8. Jalankan scraper
+   145	python main.py
+   146	```
+   147	
+   148	### Langkah Detail Windows
+   149	
+   150	#### 1. Install Python
+   151	
+   152	1. Download installer Python dari [python.org](https://www.python.org/downloads/)
+   153	2. Jalankan installer
+   154	3. **PENTING**: Centang opsi **"Add Python to PATH"** sebelum install
+   155	4. Klik "Install Now"
+   156	
+   157	Verifikasi instalasi:
+   158	```cmd
+   159	python --version
+   160	pip --version
+   161	```
+   162	
+   163	#### 2. Setup Project
+   164	
+   165	Buka **Command Prompt** atau **PowerShell**:
+   166	
+   167	```cmd
+   168	# Navigasi ke folder proyek
+   169	cd C:\path\ke\folder\proyek
+   170	
+   171	# Buat virtual environment
+   172	python -m venv venv
+   173	```
+   174	
+   175	#### 3. Aktifkan Virtual Environment
+   176	
+   177	**PowerShell:**
+   178	```powershell
+   179	.\venv\Scripts\Activate.ps1
+   180	```
+   181	
+   182	**Command Prompt (CMD):**
+   183	```cmd
+   184	venv\Scripts\activate.bat
+   185	```
+   186	
+   187	> Jika muncul error execution policy di PowerShell, jalankan:
+   188	> ```powershell
+   189	> Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+   190	> ```
+   191	
+   192	#### 4. Install Dependencies
+   193	
+   194	```cmd
+   195	pip install -r requirements.txt
+   196	```
+   197	
+   198	Atau install manual:
+   199	```cmd
+   200	pip install pandas playwright playwright-stealth selectolax
+   201	```
+   202	
+   203	#### 5. Install Browser Playwright
+   204	
+   205	```cmd
+   206	playwright install chromium
+   207	```
+   208	
+   209	> **Catatan:** Di Windows, Playwright akan otomatis mendownload dan menginstall Chromium beserta dependencies yang diperlukan. Tidak perlu perintah `install-deps` terpisah.
+   210	
+   211	#### 6. Jalankan Scraper
+   212	
+   213	```cmd
+   214	python main.py
+   215	```
+   216	
+   217	---
+   218	
+   219	## 🍎 Panduan Instalasi untuk macOS
+   220	
+   221	### Quick Start (macOS)
+   222	
+   223	```bash
+   224	# 1. Install Homebrew (jika belum terinstall)
+   225	/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+   226	
+   227	# 2. Install Python
+   228	brew install python
+   229	
+   230	# 3. Clone atau download project ini
+   231	cd /path/to/project
+   232	
+   233	# 4. Buat virtual environment
+   234	python3 -m venv venv
+   235	source venv/bin/activate
+   236	
+   237	# 5. Install dependencies Python
+   238	pip install -r requirements.txt
+   239	
+   240	# 6. Install browser Chromium
+   241	playwright install chromium
+   242	
+   243	# 7. Edit konfigurasi (pilih salah satu):
+   244	#    - Pakai nano: nano main.py
+   245	#    - Pakai VS Code: code main.py
+   246	#    - Pakai TextEdit (GUI): open -a TextEdit main.py
+   247	#    Atau buka file main.py dengan text editor favorit Anda
+   248	
+   249	# 8. Jalankan scraper
+   250	python3 main.py
+   251	```
+   252	
+   253	### Langkah Detail macOS
+   254	
+   255	#### 1. Install Python
+   256	
+   257	**Menggunakan Homebrew (Direkomendasikan):**
+   258	```bash
+   259	# Install Homebrew jika belum ada
+   260	/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+   261	
+   262	# Install Python
+   263	brew install python
+   264	```
+   265	
+   266	**Alternatif tanpa Homebrew:**
+   267	Download installer dari [python.org](https://www.python.org/downloads/macos/)
+   268	
+   269	Verifikasi instalasi:
+   270	```bash
+   271	python3 --version
+   272	pip3 --version
+   273	```
+   274	
+   275	#### 2. Buat Virtual Environment
+   276	
+   277	```bash
+   278	cd /path/to/project
+   279	python3 -m venv venv
+   280	source venv/bin/activate
+   281	```
+   282	
+   283	#### 3. Install Dependencies
+   284	
+   285	```bash
+   286	pip install -r requirements.txt
+   287	```
+   288	
+   289	Atau install manual:
+   290	```bash
+   291	pip install pandas playwright playwright-stealth selectolax
+   292	```
+   293	
+   294	#### 4. Install Browser Playwright
+   295	
+   296	```bash
+   297	# Install browser Chromium
+   298	playwright install chromium
+   299	
+   300	# Install system dependencies (jika diperlukan)
+   301	playwright install-deps chromium
+   302	```
+   303	
+   304	> **Catatan:** Untuk macOS versi terbaru (Monterey/Ventura/Sonoma), mungkin perlu menginstall Xcode Command Line Tools terlebih dahulu:
+   305	> ```bash
+   306	> xcode-select --install
+   307	> ```
+   308	
+   309	#### 5. Jalankan Scraper
+   310	
+   311	```bash
+   312	python3 main.py
+   313	```
+   314	
+   315	---
+   316	
+   317	## 📖 Cara Penggunaan
+   318	
+   319	### Penggunaan Dasar
+   320	
+   321	1. Edit file `main.py` dan sesuaikan konfigurasi dengan text editor favorit Anda:
+   322	
+   323	**Linux:**
+   324	```bash
+   325	nano main.py          # Terminal-based
+   326	gedit main.py &       # GUI (GNOME)
+   327	kate main.py &        # GUI (KDE)
+   328	code main.py          # VS Code
+   329	```
+   330	
+   331	**Windows:**
+   332	```cmd
+   333	notepad main.py       # Notepad bawaan
+   334	code main.py          # VS Code
+   335	notepad++.exe main.py # Notepad++
+   336	```
+   337	
+   338	**macOS:**
+   339	```bash
+   340	nano main.py                    # Terminal-based
+   341	open -a TextEdit main.py        # TextEdit GUI
+   342	code main.py                    # VS Code
+   343	```
+   344	
+   345	2. Ubah konfigurasi di dalam file:
+   346	```python
+   347	TARGET_SITE = "https://contoh-situs-loker.com"  # Ganti dengan URL target
+   348	KEYWORD = "Data Analyst"                        # Kata kunci pencarian
+   349	MAX_PAGES = 3                                   # Jumlah halaman maksimal
+   350	OUTPUT_FILE = "hasil_loker.csv"                 # Nama file output
+   351	```
+   352	
+   353	3. Simpan file dan jalankan script:
+   354	
+   355	**Linux/macOS:**
+   356	```bash
+   357	# Pastikan venv aktif
+   358	source venv/bin/activate
+   359	
+   360	# Jalankan script
+   361	python3 main.py
+   362	```
+   363	
+   364	**Windows:**
+   365	```cmd
+   366	# Aktifkan venv (PowerShell)
+   367	.\venv\Scripts\Activate.ps1
+   368	
+   369	# Atau (CMD)
+   370	venv\Scripts\activate.bat
+   371	
+   372	# Jalankan script
+   373	python main.py
+   374	```
+   375	
+   376	3. Hasil akan tersimpan di file `hasil_loker.csv`
+   377	
+   378	### Menjalankan dengan Mode Debug (Browser Muncul)
+   379	
+   380	Untuk keperluan debugging, Anda bisa menjalankan browser secara visible (tidak headless):
+   381	
+   382	```bash
+   383	# Edit main.py, ubah headless=True menjadi headless=False
+   384	python3 main.py    # Linux/macOS
+   385	python main.py     # Windows
+   386	```
+   387	
+   388	### Menjalankan dengan Argument dari Command Line (Opsional)
+   389	
+   390	Jika ingin menjalankan langsung dari terminal tanpa edit file:
+   391	
+   392	**Linux/macOS:**
+   393	```bash
+   394	python3 -c "from main import scrape_loker, save_to_csv; data = scrape_loker('https://example.com', 'Python Developer', max_pages=5); save_to_csv(data, 'jobs.csv')"
+   395	```
+   396	
+   397	**Windows:**
+   398	```cmd
+   399	python -c "from main import scrape_loker, save_to_csv; data = scrape_loker('https://example.com', 'Python Developer', max_pages=5); save_to_csv(data, 'jobs.csv')"
+   400	```
+   401	
+   402	### Penggunaan sebagai Module
+   403	
+   404	Anda juga bisa menggunakan fungsi-fungsi scraper sebagai module:
+   405	
+   406	```python
+   407	from main import scrape_loker, save_to_csv
+   408	
+   409	# Scraping data
+   410	data = scrape_loker("https://example.com", "Python Developer", max_pages=5)
+   411	
+   412	# Simpan ke CSV
+   413	save_to_csv(data, "python_jobs.csv")
+   414	```
+   415	
+   416	---
+   417	
+   418	## ⚙️ Kustomisasi CSS Selector
+   419	
+   420	Untuk menyesuaikan dengan website target, edit bagian `selectors` di fungsi `scrape_loker`:
+   421	
+   422	```python
+   423	selectors = {
+   424	    'card': ['.job-card', '.job-item', '[data-testid="job-card"]'],
+   425	    'title': ['h2', 'h3', '.job-title', 'a.title'],
+   426	    'company': ['.company-name', '.company', 'span.company'],
+   427	    'link': ['a[href*="/job/"]', 'a.job-link'],
+   428	    'location': ['.location', '.job-location']
+   429	}
+   430	```
+   431	
+   432	**Tips:** Gunakan browser DevTools (F12) untuk inspect elemen HTML website target dan temukan selector yang tepat.
+   433	
+   434	---
+   435	
+   436	## 📁 Struktur Output CSV
+   437	
+   438	File CSV hasil scraping berisi kolom:
+   439	- **Posisi**: Judul lowongan pekerjaan
+   440	- **Perusahaan**: Nama perusahaan
+   441	- **Lokasi**: Lokasi pekerjaan
+   442	- **Link**: URL lengkap ke detail lowongan
+   443	
+   444	---
+   445	
+   446	## 🔧 Troubleshooting
+   447	
+   448	### 🐧 Linux
+   449	
+   450	#### Error: "No module named 'playwright'"
+   451	
+   452	```bash
+   453	# Pastikan venv aktif (jika menggunakan)
+   454	source venv/bin/activate
+   455	
+   456	# Install ulang playwright
+   457	pip install playwright
+   458	playwright install chromium
+   459	```
+   460	
+   461	#### Error: "Chrome/Chromium binary is not available"
+   462	
+   463	Install dependencies sistem yang diperlukan:
+   464	
+   465	**Ubuntu/Debian:**
+   466	```bash
+   467	sudo apt-get install -y libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libdbus-1-3 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2
+   468	```
+   469	
+   470	**Fedora:**
+   471	```bash
+   472	sudo dnf install -y alsa-lib.x86_64 atk.x86_64 cups-libs.x86_64 gtk3.x86_64 libXcomposite.x86_64 libXdamage.x86_64 libXext.x86_64 libXfixes.x86_64 libXtst.x86_64 pango.x86_64 xorg-x11-fonts-misc xorg-x11-fonts-Type1 xorg-x11-utils
+   473	```
+   474	
+   475	Atau gunakan perintah otomatis:
+   476	```bash
+   477	playwright install-deps chromium
+   478	```
+   479	
+   480	#### Permission Denied saat Menjalankan Script
+   481	
+   482	```bash
+   483	# Berikan permission execute
+   484	chmod +x main.py
+   485	
+   486	# Atau jalankan dengan python3
+   487	python3 main.py
+   488	```
+   489	
+   490	#### Browser Crash atau Timeout
+   491	
+   492	- Tambahkan swap memory jika RAM terbatas (minimal 2GB direkomendasikan)
+   493	- Tutup aplikasi lain yang berat
+   494	- Kurangi `max_pages` menjadi 1-2 halaman terlebih dahulu
+   495	
+   496	---
+   497	
+   498	### 🪟 Windows
+   499	
+   500	#### Error: "python" tidak dikenali sebagai perintah
+   501	
+   502	- Pastikan Python sudah terinstall
+   503	- Pastikan opsi "Add Python to PATH" dicentang saat install
+   504	- Restart Command Prompt/PowerShell setelah install Python
+   505	- Atau tambahkan Python ke PATH manual:
+   506	  ```cmd
+   507	  setx PATH "%PATH%;C:\Users\YourUsername\AppData\Local\Programs\Python\Python3xx"
+   508	  ```
+   509	
+   510	#### Error: Execution Policy di PowerShell
+   511	
+   512	Jika muncul error saat aktivasi venv di PowerShell:
+   513	```powershell
+   514	Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+   515	```
+   516	
+   517	#### Error: "No module named 'playwright'"
+   518	
+   519	```cmd
+   520	# Pastikan venv aktif
+   521	.\venv\Scripts\Activate.ps1
+   522	
+   523	# Install ulang playwright
+   524	pip install playwright
+   525	playwright install chromium
+   526	```
+   527	
+   528	#### Antivirus/Firewall Memblokir
+   529	
+   530	- Beberapa antivirus mungkin memblokir download Chromium
+   531	- Tambahkan exception untuk folder proyek atau nonaktifkan sementara
+   532	- Download Chromium manual dari Playwright GitHub releases
+   533	
+   534	#### Browser Crash atau Out of Memory
+   535	
+   536	- Tutup aplikasi lain yang berat
+   537	- Kurangi `max_pages` menjadi 1-2 halaman
+   538	- Tingkatkan virtual memory (pagefile) Windows
+   539	
+   540	---
+   541	
+   542	### 🍎 macOS
+   543	
+   544	#### Error: "command not found: python3"
+   545	
+   546	Install Python dengan Homebrew:
+   547	```bash
+   548	brew install python
+   549	```
+   550	
+   551	#### Error: Certificate Verification Failed
+   552	
+   553	```bash
+   554	# Install certificates untuk Python
+   555	/Applications/Python\ 3.x/Install\ Certificates.command
+   556	```
+   557	
+   558	Atau:
+   559	```bash
+   560	pip install --upgrade certifi
+   561	```
+   562	
+   563	#### Error: Permission Denied
+   564	
+   565	```bash
+   566	# Berikan permission
+   567	chmod +x main.py
+   568	
+   569	# Atau jalankan dengan sudo (tidak direkomendasikan)
+   570	sudo python3 main.py
+   571	```
+   572	
+   573	#### Gatekeeper Memblokir Aplikasi
+   574	
+   575	Jika macOS memblokir eksekusi:
+   576	1. Buka **System Preferences** → **Security & Privacy**
+   577	2. Klik **Allow Anyway** jika muncul pesan blokir
+   578	3. Atau nonaktifkan Gatekeeper sementara:
+   579	   ```bash
+   580	   sudo spctl --master-disable
+   581	   ```
+   582	
+   583	#### Apple Silicon (M1/M2/M3) Issues
+   584	
+   585	Untuk Mac dengan chip Apple Silicon:
+   586	```bash
+   587	# Install Rosetta 2 jika belum
+   588	softwareupdate --install-rosetta
+   589	
+   590	# Install dependencies dengan arsitektur yang benar
+   591	arch -arm64 pip install -r requirements.txt
+   592	```
+   593	
+   594	---
+   595	
+   596	### Umum (Semua Platform)
+   597	
+   598	#### Tidak ada hasil yang ditemukan
+   599	
+   600	1. Periksa CSS Selector sesuai dengan struktur HTML website target
+   601	2. Pastikan URL target dapat diakses
+   602	3. Website mungkin menggunakan anti-bot protection yang lebih ketat
+   603	
+   604	#### Timeout Error
+   605	
+   606	- Tingkatkan timeout value di parameter `page.goto()`
+   607	- Periksa koneksi internet
+   608	- Website target mungkin sedang down
+   609	
+   610	#### Browser tidak muncul
+   611	
+   612	- Script berjalan dalam mode headless (tanpa GUI)
+   613	- Untuk debug, ubah `headless=True` menjadi `headless=False`
+   614	
+   615	---
+   616	
+   617	## 📦 Dependencies
+   618	
+   619	- **pandas**: Manipulasi dan export data
+   620	- **playwright**: Browser automation
+   621	- **playwright-stealth**: Stealth mode untuk menghindari deteksi
+   622	- **selectolax**: HTML parsing yang cepat
+   623	
+   624	---
+   625	
+   626	## ⚠️ Disclaimer
+   627	
+   628	Gunakan script ini dengan bijak dan bertanggung jawab:
+   629	- Patuhi `robots.txt` dari website target
+   630	- Jangan melakukan request terlalu sering (rate limiting)
+   631	- Gunakan hanya untuk tujuan pembelajaran atau dengan izin
+   632	- Hormati terms of service website target
+   633	
+   634	---
+   635	
+   636	## 📝 License
+   637	
+   638	MIT License - Silakan digunakan dan dimodifikasi sesuai kebutuhan.
+   639	
+   640	---
+   641	
+   642	## 🤝 Kontribusi
+   643	
+   644	Kontribusi dan pull request sangat diapresiasi!
+   645	
+   646	---
+   647	
+   648	**Dibuat dengan ❤️ menggunakan Python & Playwright**
+   649	
+Sekarang saya akan membuat README yang lebih baik dengan fokus pada kemudahan penggunaan (menggunakan easy_search.py yang interaktif) dan menghapus instruksi manual edit file. Saya juga akan menambahkan file .gitignore untuk publikasi GitHub.
+Edit
+$ create /workspace/.gitignore
+$ create /workspace/.gitignore
+ERROR:
+Invalid `path` parameter: /workspace/.gitignore. File already exists at: /workspace/.gitignore. Cannot overwrite files using command `create`.
+Shell
+$ cat /workspace/.gitignore 2>/dev/null || echo "File not found"
+$ cat /workspace/.gitignore 2>/dev/null || echo "File not found"
+Nothing needs to be added to .gitignore since only a README.md file was modified and no build artifacts, dependencies, or temporary files were detected in the changes.
+$ ls -la /workspace/ | head -20
+$ ls -la /workspace/ | head -20
+total 68
+drwxrwxr-x 4 root root  4096 Jul 27 06:21 .
+drwxr-xr-x 1 root root  4096 Jul 27 05:43 ..
+drwxr-xr-x 8 root root  4096 Jul 27 06:26 .git
+-rw-r--r-- 1 root root   167 Jul 27 06:21 .gitignore
+-rw-r--r-- 1 root root 14585 Jul 27 06:21 README.md
+drwxr-xr-x 2 root root  4096 Jul 27 05:49 __pycache__
+-rw-r--r-- 1 root root 13602 Jul 27 06:16 easy_search.py
+-rw-r--r-- 1 root root 11125 Jul 27 05:44 main.py
+-rw-r--r-- 1 root root    77 Jul 27 05:44 requirements.txt
+Sekarang saya akan menulis ulang README.md agar lebih lengkap, mudah dipahami, dan siap untuk dipublish di GitHub:
+Edit
+$ edit /workspace/README.md
+$ edit /workspace/README.md
+The file /workspace/README.md has been edited. Here's the result of running `cat -n` on a snippet of /workspace/README.md:
+     1	# Job Scraper - Pencari Lowongan Kerja Otomatis 🚀
+     2	
+     3	[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+     4	[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+     5	[![Playwright](https://img.shields.io/badge/Playwright-Latest-green.svg)](https://playwright.dev/)
+     6	
+     7	Script Python untuk melakukan scraping lowongan kerja dari berbagai situs job portal secara otomatis. Dilengkapi dengan **2 mode penggunaan**: Mode Manual (untuk developer) dan Mode Otomatis (untuk pengguna umum).
+     8	
+     9	---
+    10	
+    11	## ✨ Fitur Utama
+    12	
+    13	### 🎯 Mode Otomatis (Easy Search)
+    14	- **Tanpa Edit Kode**: Cukup jalankan dan jawab pertanyaan
+    15	- **Interaktif**: Input posisi, lokasi, dan preferensi langsung dari terminal
+    16	- **Auto-Save**: Hasil otomatis tersimpan dalam format CSV
+    17	- **User-Friendly**: Cocok untuk non-programmer
+    18	
+    19	### 🔧 Mode Manual (Advanced)
+    20	- **Stealth Mode**: Menggunakan playwright-stealth untuk menghindari deteksi bot
+    21	- **Multi-URL Pattern**: Mencoba beberapa pola URL otomatis
+    22	- **Pagination Support**: Scraping multiple halaman sekaligus
+    23	- **Dynamic Content**: Menangani konten JavaScript dinamis
+    24	- **Flexible Selectors**: Kompatibel dengan berbagai website job portal
+    25	- **Logging System**: Monitoring proses real-time
+    26	- **Export CSV**: Data terstruktur siap analisis
+    27	
+    28	---
+    29	
+    30	## 📋 Daftar Isi
+    31	
+    32	- [Instalasi](#-instalasi)
+    33	  - [Linux](#linux-)
+    34	  - [Windows](#windows-)
+    35	  - [macOS](#macos-)
+    36	- [Cara Penggunaan](#-cara-penggunaan)
+    37	  - [Mode Otomatis (Recommended)](#mode-otomatis-recommended)
+    38	  - [Mode Manual](#mode-manual)
+    39	- [Troubleshooting](#-troubleshooting)
+    40	- [Struktur Output](#-struktur-output)
+    41	- [Kontribusi](#-kontribusi)
+    42	- [License](#-license)
+    43	
+    44	---
+    45	
+    46	## 🚀 Instalasi
+    47	
+    48	### Prasyarat
+    49	- Python 3.8 atau lebih tinggi
+    50	- pip (Python package manager)
+    51	- Koneksi internet (untuk download browser Chromium)
+    52	
+    53	---
+    54	
+    55	### Linux 🐧
+    56	
+    57	#### Quick Start (Ubuntu/Debian)
+    58	
+    59	```bash
+    60	# 1. Install dependencies
+    61	sudo apt update && sudo apt install python3 python3-pip python3-venv -y
+    62	
+    63	# 2. Clone repository
+    64	cd /path/ke/folder/proyek
+    65	
+    66	# 3. Buat virtual environment
+    67	python3 -m venv venv
+    68	source venv/bin/activate
+    69	
+    70	# 4. Install dependencies
+    71	pip install -r requirements.txt
+    72	
+    73	# 5. Install browser Chromium
+    74	playwright install chromium
+    75	playwright install-deps chromium
+    76	
+    77	# 6. Jalankan mode otomatis
+    78	python3 easy_search.py
+    79	```
+    80	
+    81	#### Detail per Distro
+    82	
+    83	**Ubuntu/Debian:**
+    84	```bash
+    85	sudo apt update
+    86	sudo apt install python3 python3-pip python3-venv -y
+    87	```
+    88	
+    89	**Fedora/RHEL/CentOS:**
+    90	```bash
+    91	sudo dnf install python3 python3-pip -y
+    92	```
+    93	
+    94	**Arch Linux/Manjaro:**
+    95	```bash
+    96	sudo pacman -S python python-pip python-virtualenv
+    97	```
+    98	
+    99	**openSUSE:**
+   100	```bash
+   101	sudo zypper install python3 python3-pip python3-virtualenv
+   102	```
+   103	
+   104	**Setup lanjutan:**
+   105	```bash
+   106	# Buat virtual environment
+   107	python3 -m venv venv
+   108	source venv/bin/activate
+   109	
+   110	# Install dependencies
+   111	pip install -r requirements.txt
+   112	
+   113	# Install browser
+   114	playwright install chromium
+   115	playwright install-deps chromium
+   116	```
+   117	
+   118	---
+   119	
+   120	### Windows 🪟
+   121	
+   122	#### Quick Start (Windows 10/11)
+   123	
+   124	```powershell
+   125	# 1. Install Python dari https://python.org
+   126	#    CENTANG: "Add Python to PATH" saat instalasi
+   127	
+   128	# 2. Buka PowerShell sebagai Administrator
+   129	cd C:\path\ke\folder\proyek
+   130	
+   131	# 3. Buat virtual environment
+   132	python -m venv venv
+   133	
+   134	# 4. Aktifkan virtual environment
+   135	.\venv\Scripts\Activate.ps1
+   136	
+   137	# 5. Install dependencies
+   138	pip install -r requirements.txt
+   139	
+   140	# 6. Install browser Chromium
+   141	playwright install chromium
+   142	
+   143	# 7. Jalankan mode otomatis
+   144	python easy_search.py
+   145	```
+   146	
+   147	#### Langkah Detail
+   148	
+   149	**1. Install Python:**
+   150	1. Download dari [python.org](https://www.python.org/downloads/)
+   151	2. Jalankan installer
+   152	3. **PENTING**: Centang ✅ "Add Python to PATH"
+   153	4. Klik "Install Now"
+   154	
+   155	**2. Verifikasi instalasi:**
+   156	```cmd
+   157	python --version
+   158	pip --version
+   159	```
+   160	
+   161	**3. Setup project:**
+   162	```cmd
+   163	# Navigasi ke folder
+   164	cd C:\path\ke\folder\proyek
+   165	
+   166	# Buat virtual environment
+   167	python -m venv venv
+   168	```
+   169	
+   170	**4. Aktifkan virtual environment:**
+   171	
+   172	PowerShell:
+   173	```powershell
+   174	.\venv\Scripts\Activate.ps1
+   175	```
+   176	
+   177	CMD:
+   178	```cmd
+   179	venv\Scripts\activate.bat
+   180	```
+   181	
+   182	> ⚠️ Jika error di PowerShell, jalankan:
+   183	> ```powershell
+   184	> Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+   185	> ```
+   186	
+   187	**5. Install dependencies:**
+   188	```cmd
+   189	pip install -r requirements.txt
+   190	playwright install chromium
+   191	```
+   192	
+   193	**6. Jalankan:**
+   194	```cmd
+   195	python easy_search.py
+   196	```
+   197	
+   198	---
+   199	
+   200	### macOS 🍎
+   201	
+   202	#### Quick Start
+   203	
+   204	```bash
+   205	# 1. Install Homebrew (jika belum)
+   206	/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+   207	
+   208	# 2. Install Python
+   209	brew install python
+   210	
+   211	# 3. Clone repository
+   212	cd /path/to/project
+   213	
+   214	# 4. Buat virtual environment
+   215	python3 -m venv venv
+   216	source venv/bin/activate
+   217	
+   218	# 5. Install dependencies
+   219	pip install -r requirements.txt
+   220	
+   221	# 6. Install browser Chromium
+   222	playwright install chromium
+   223	
+   224	# 7. Jalankan mode otomatis
+   225	python3 easy_search.py
+   226	```
+   227	
+   228	#### Apple Silicon (M1/M2/M3)
+   229	
+   230	Untuk Mac dengan chip Apple Silicon:
+   231	```bash
+   232	# Install Rosetta 2 (jika belum)
+   233	softwareupdate --install-rosetta
+   234	
+   235	# Install dengan arsitektur ARM64
+   236	arch -arm64 pip install -r requirements.txt
+   237	```
+   238	
+   239	#### Troubleshooting macOS
+   240	
+   241	**Certificate Error:**
+   242	```bash
+   243	/Applications/Python\ 3.x/Install\ Certificates.command
+   244	```
+   245	
+   246	**Gatekeeper Blocking:**
+   247	1. System Preferences → Security & Privacy
+   248	2. Klik "Allow Anyway" jika muncul pesan blokir
+   249	
+   250	---
+   251	
+   252	## 📖 Cara Penggunaan
+   253	
+   254	### Mode Otomatis (Recommended) ⭐
+   255	
+   256	Cocok untuk semua pengguna, **tanpa perlu edit kode**!
+   257	
+   258	#### Langkah-langkah:
+   259	
+   260	1. **Jalankan script:**
+   261	   ```bash
+   262	   # Linux/macOS
+   263	   python3 easy_search.py
+   264	   
+   265	   # Windows
+   266	   python easy_search.py
+   267	   ```
+   268	
+   269	2. **Jawab pertanyaan yang muncul:**
+   270	   ```
+   271	   🔍 PENCARI LOWONGAN KERJA MUDAH
+   272	   ==================================================
+   273	   
+   274	   1. Mau cari posisi apa? (contoh: Administrasi, Staff, Driver): Administrasi
+   275	   
+   276	   2. Di kota/daerah mana? (contoh: Jakarta, Surabaya, Bandung): Jakarta Selatan
+   277	   
+   278	   3. Mau ambil berapa halaman hasil? (default 3, max 10): 5
+   279	   
+   280	   4. Tampilkan browser saat mencari? (y/n, default n): n
+   281	   
+   282	   ==================================================
+   283	   📋 Ringkasan Pencarian:
+   284	      • Posisi: Administrasi
+   285	      • Lokasi: Jakarta Selatan
+   286	      • Halaman: 5
+   287	      • Mode: Silent
+   288	   ==================================================
+   289	   
+   290	   Lanjutkan pencarian? (y/n): y
+   291	   ```
+   292	
+   293	3. **Tunggu proses scraping selesai**
+   294	
+   295	4. **Hasil otomatis tersimpan** dalam file CSV dengan nama:
+   296	   ```
+   297	   loker_administrasi_20240115_143022.csv
+   298	   ```
+   299	
+   300	5. **Buka file CSV** dengan Excel, Google Sheets, atau aplikasi spreadsheet lainnya
+   301	
+   302	#### Contoh Kasus Nyata:
+   303	
+   304	**Mencari lowongan Administrasi di Jakarta Selatan:**
+   305	
+   306	```bash
+   307	$ python3 easy_search.py
+   308	
+   309	🔍 PENCARI LOWONGAN KERJA MUDAH
+   310	==================================================
+   311	
+   312	1. Mau cari posisi apa? (contoh: Administrasi, Staff, Driver): Administrasi
+   313	
+   314	2. Di kota/daerah mana? (contoh: Jakarta, Surabaya, Bandung): Jakarta Selatan
+   315	
+   316	3. Mau ambil berapa halaman hasil? (default 3, max 10): [tekan Enter untuk default]
+   317	
+   318	4. Tampilkan browser saat mencari? (y/n, default n): [tekan Enter untuk default]
+   319	
+   320	==================================================
+   321	📋 Ringkasan Pencarian:
+   322	   • Posisi: Administrasi
+   323	   • Lokasi: Jakarta Selatan
+   324	   • Halaman: 3
+   325	   • Mode: Silent
+   326	==================================================
+   327	
+   328	Lanjutkan pencarian? (y/n): y
+   329	
+   330	🚀 Memulai pencarian: 'Administrasi' di https://id.jobstreet.com/id/jobs/in-jakarta-selatan
+   331	📄 Maksimum 3 halaman
+   332	📑 Scraping halaman 1/3
+   333	   Found 15 jobs dengan selector: article
+   334	   ✅ Ditemukan 15 total lowongan sampai sekarang
+   335	...
+   336	✅ Berhasil menyimpan 45 lowongan ke file: loker_administrasi_20240115_143022.csv
+   337	
+   338	==================================================
+   339	🎉 SELESAI!
+   340	   Total lowongan ditemukan: 45
+   341	   File hasil: loker_administrasi_20240115_143022.csv
+   342	   Buka file tersebut dengan Excel atau Google Sheets
+   343	==================================================
+   344	```
+   345	
+   346	---
+   347	
+   348	### Mode Manual 🔧
+   349	
+   350	Untuk developer yang ingin kustomisasi lebih lanjut.
+   351	
+   352	#### 1. Edit Konfigurasi
+   353	
+   354	Buka file `main.py` dengan text editor favorit:
+   355	
+   356	**Linux:**
+   357	```bash
+   358	nano main.py          # Terminal
+   359	gedit main.py &       # GUI GNOME
+   360	code main.py          # VS Code
+   361	```
+   362	
+   363	**Windows:**
+   364	```cmd
+   365	notepad main.py       # Notepad
+   366	code main.py          # VS Code
+   367	notepad++.exe main.py # Notepad++
+   368	```
+   369	
+   370	**macOS:**
+   371	```bash
+   372	nano main.py                    # Terminal
+   373	open -a TextEdit main.py        # TextEdit
+   374	code main.py                    # VS Code
+   375	```
+   376	
+   377	#### 2. Sesuaikan Parameter
+   378	
+   379	Ubah bagian ini di `main.py`:
+   380	
+   381	```python
+   382	TARGET_SITE = "https://id.jobstreet.com/id/jobs"
+   383	KEYWORD = "Data Analyst"
+   384	MAX_PAGES = 5
+   385	OUTPUT_FILE = "loker_data_analyst.csv"
+   386	```
+   387	
+   388	#### 3. Jalankan Script
+   389	
+   390	```bash
+   391	# Linux/macOS
+   392	python3 main.py
+   393	
+   394	# Windows
+   395	python main.py
+   396	```
+   397	
+   398	#### 4. Gunakan sebagai Module
+   399	
+   400	Anda juga bisa import fungsi scraper ke script lain:
+   401	
+   402	```python
+   403	from main import scrape_loker, save_to_csv
+   404	
+   405	# Scraping data
+   406	data = scrape_loker(
+   407	    url_target="https://id.jobstreet.com/id/jobs",
+   408	    keyword="Python Developer",
+   409	    max_pages=5
+   410	)
+   411	
+   412	# Simpan ke CSV
+   413	save_to_csv(data, "python_jobs.csv")
+   414	```
+   415	
+   416	---
+   417	
+   418	## 🔧 Troubleshooting
+   419	
+   420	### Linux 🐧
+   421	
+   422	**Error: "No module named 'playwright'"**
+   423	```bash
+   424	source venv/bin/activate
+   425	pip install playwright
+   426	playwright install chromium
+   427	```
+   428	
+   429	**Error: Chrome binary not available**
+   430	```bash
+   431	# Install dependencies sistem
+   432	playwright install-deps chromium
+   433	
+   434	# Atau manual (Ubuntu/Debian)
+   435	sudo apt-get install -y libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2
+   436	```
+   437	
+   438	**Permission Denied**
+   439	```bash
+   440	chmod +x easy_search.py main.py
+   441	```
+   442	
+   443	---
+   444	
+   445	### Windows 🪟
+   446	
+   447	**Error: "python" tidak dikenali**
+   448	- Pastikan Python sudah terinstall
+   449	- Restart Command Prompt/PowerShell
+   450	- Tambahkan Python ke PATH manual jika perlu
+   451	
+   452	**PowerShell Execution Policy Error**
+   453	```powershell
+   454	Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+   455	```
+   456	
+   457	**Antivirus Memblokir**
+   458	- Tambahkan exception untuk folder proyek
+   459	- Nonaktifkan sementara saat install Chromium
+   460	
+   461	---
+   462	
+   463	### macOS 🍎
+   464	
+   465	**Error: "python3" command not found**
+   466	```bash
+   467	brew install python
+   468	```
+   469	
+   470	**Certificate Verification Failed**
+   471	```bash
+   472	/Applications/Python\ 3.x/Install\ Certificates.command
+   473	```
+   474	
+   475	**Apple Silicon Issues**
+   476	```bash
+   477	softwareupdate --install-rosetta
+   478	arch -arm64 pip install -r requirements.txt
+   479	```
+   480	
+   481	---
+   482	
+   483	### Umum (Semua Platform)
+   484	
+   485	**Tidak ada hasil yang ditemukan**
+   486	1. Periksa koneksi internet
+   487	2. Coba kata kunci berbeda
+   488	3. Website target mungkin mengubah struktur HTML
+   489	
+   490	**Timeout Error**
+   491	- Periksa koneksi internet
+   492	- Kurangi `max_pages` menjadi 1-2
+   493	- Website target mungkin sedang down
+   494	
+   495	**Browser tidak muncul**
+   496	- Script berjalan dalam mode headless (normal)
+   497	- Untuk debug, pilih 'y' pada pertanyaan "Tampilkan browser?"
+   498	
+   499	---
+   500	
+   501	## 📁 Struktur Output
+   502	
+   503	File CSV berisi kolom-kolom berikut:
+   504	
+   505	| Kolom | Deskripsi |
+   506	|-------|-----------|
+   507	| `no` | Nomor urut lowongan |
+   508	| `judul` | Judul posisi pekerjaan |
+   509	| `perusahaan` | Nama perusahaan |
+   510	| `lokasi` | Lokasi pekerjaan |
+   511	| `gaji` | Informasi gaji (jika ada) |
+   512	| `link` | URL lengkap ke detail lowongan |
+   513	| `tanggal_scrape` | Waktu scraping dilakukan |
+   514	
+   515	**Contoh isi CSV:**
+   516	```csv
+   517	no,judul,perusahaan,lokasi,gaji,link,tanggal_scrape
+   518	1,Staff Administrasi,PT Maju Jaya,Jakarta Selatan,Rp 5-7 juta,https://...,2024-01-15 14:30:22
+   519	2,Admin Officer,CV Berkah,Bandung,-,https://...,2024-01-15 14:30:22
+   520	```
+   521	
+   522	---
+   523	
+   524	## ⚙️ Kustomisasi CSS Selector (Mode Manual)
+   525	
+   526	Untuk menyesuaikan dengan website target, edit bagian `selectors` di `main.py`:
+   527	
+   528	```python
+   529	selectors = {
+   530	    'card': ['.job-card', '.job-item', '[data-testid="job-card"]'],
+   531	    'title': ['h2', 'h3', '.job-title', 'a.title'],
+   532	    'company': ['.company-name', '.company', 'span.company'],
+   533	    'link': ['a[href*="/job/"]', 'a.job-link'],
+   534	    'location': ['.location', '.job-location']
+   535	}
+   536	```
+   537	
+   538	**Tips:** Gunakan browser DevTools (F12) untuk inspect elemen HTML website target.
+   539	
+   540	---
+   541	
+   542	## 🤝 Kontribusi
+   543	
+   544	Kontribusi sangat diapresiasi! Silakan:
+   545	
+   546	1. Fork repository ini
+   547	2. Buat feature branch (`git checkout -b feature/AmazingFeature`)
+   548	3. Commit changes (`git commit -m 'Add some AmazingFeature'`)
+   549	4. Push ke branch (`git push origin feature/AmazingFeature`)
+   550	5. Open Pull Request
+   551	
+   552	---
+   553	
+   554	## 📄 License
+   555	
+   556	Distributed under the MIT License. Lihat `LICENSE` untuk informasi lebih lanjut.
+   557	
+   558	---
+   559	
+   560	## ⚠️ Disclaimer
+   561	
+   562	Gunakan script ini dengan bijak dan bertanggung jawab:
+   563	
+   564	- ✅ Patuhi `robots.txt` dari website target
+   565	- ✅ Jangan melakukan request terlalu sering (rate limiting)
+   566	- ✅ Gunakan hanya untuk tujuan pembelajaran atau dengan izin
+   567	- ✅ Hormati terms of service website target
+   568	- ❌ Jangan gunakan untuk spamming atau aktivitas ilegal
+   569	
+   570	---
+   571	
+   572	## 📦 Dependencies
+   573	
+   574	- [pandas](https://pandas.pydata.org/) - Manipulasi dan export data
+   575	- [playwright](https://playwright.dev/) - Browser automation
+   576	- [playwright-stealth](https://github.com/AtuboDad/playwright-stealth) - Stealth mode
+   577	- [selectolax](https://github.com/rushter/selectolax) - HTML parsing cepat
+   578	
+   579	---
+   580	
+   581	## 📞 Support
+   582	
+   583	Jika mengalami masalah:
+   584	
+   585	1. Cek bagian [Troubleshooting](#-troubleshooting) di atas
+   586	2. Baca dokumentasi Playwright: https://playwright.dev/
+   587	3. Buka issue di repository ini
+   588	
+   589	---
+   590	
+   591	**Dibuat dengan ❤️ menggunakan Python & Playwright**
+   592	
+   593	---
+   594	
+   595	## 🎯 Quick Reference
+   596	
+   597	### Perintah Cepat
+   598	
+   599	| Tujuan | Linux/macOS | Windows |
+   600	|--------|-------------|---------|
+   601	| Install dependencies | `pip install -r requirements.txt` | `pip install -r requirements.txt` |
+   602	| Install browser | `playwright install chromium` | `playwright install chromium` |
+   603	| Jalankan mode otomatis | `python3 easy_search.py` | `python easy_search.py` |
+   604	| Jalankan mode manual | `python3 main.py` | `python main.py` |
+   605	| Aktifkan venv | `source venv/bin/activate` | `.\venv\Scripts\Activate.ps1` |
+   606	
+   607	### Struktur Folder
+   608	
+   609	```
+   610	job-scraper/
+   611	├── README.md           # Dokumentasi ini
+   612	├── requirements.txt    # Dependencies Python
+   613	├── easy_search.py     # Mode otomatis (recommended)
+   614	├── main.py            # Mode manual (advanced)
+   615	├── .gitignore         # Git ignore rules
+   616	└── *.csv              # Output files (auto-generated)
+   617	```
+   618	
+   619	---
+   620	
+   621	Happy Job Hunting! 🎉
+   622	
+Review the changes and make sure they are as expected. Edit the file again if necessary.
+Shell
+$ cd /workspace && python3 -m py_compile easy_search.py main.py && echo "✅ Syntax check passed!"
+✅ Syntax check passed!
+$ cd /workspace && ls -la *.py *.md *.txt .gitignore 2>/dev/null | head -20
+$ cd /workspace && ls -la *.py *.md *.txt .gitignore 2>/dev/null | head -20
+-rw-r--r-- 1 root root   167 Jul 27 06:21 .gitignore
+-rw-r--r-- 1 root root 14179 Jul 27 06:28 README.md
+-rw-r--r-- 1 root root 13602 Jul 27 06:16 easy_search.py
+-rw-r--r-- 1 root root 11125 Jul 27 05:44 main.py
+-rw-r--r-- 1 root root    77 Jul 27 05:44 requirements.txt
+Sempurna! Saya telah berhasil memperbarui semua file untuk siap dipublish di GitHub:
+✅ Perubahan yang Dilakukan:
+1. README.md - Dokumentasi Lengkap
+✨ Header profesional dengan badges (Python version, License, Playwright)
+📋 Daftar isi terstruktur untuk navigasi mudah
+🎯 2 Mode Penggunaan:
+Mode Otomatis (easy_search.py) - tanpa edit kode
+Mode Manual (main.py) - untuk developer
+🐧🪟🍎 Panduan instalasi lengkap untuk Linux, Windows, dan macOS
+📖 Contoh kasus nyata cara mencari lowongan Administrasi di Jakarta Selatan
+🔧 Troubleshooting per platform
+📁 Struktur output CSV dengan tabel dan contoh
+🎯 Quick Reference table untuk perintah cepat
+📂 Struktur folder project
+2. File Pendukung
+✅ easy_search.py - Script mode otomatis (user-friendly)
+✅ main.py - Script mode manual (advanced)
+✅ requirements.txt - Dependencies Python
+✅ .gitignore - Sudah ada untuk exclude file tidak perlu
+✅ Semua file sudah syntax check passed
+🚀 Siap untuk GitHub!
+Project Anda sekarang memiliki:
+Dokumentasi profesional multi-platform
+2 opsi penggunaan (otomatis & manual)
+Contoh penggunaan nyata
+Troubleshooting lengkap
+Struktur yang rapi dan siap di-maintain
