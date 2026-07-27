@@ -218,13 +218,21 @@ class JobStreetScraper:
         if self.config.headless:
             options.add_argument('--headless=new')
         
+        # Konfigurasi penting untuk Linux/Server
+        options.add_argument('--no-sandbox')  # Diperlukan untuk Linux
+        options.add_argument('--disable-dev-shm-usage')  # Hindari masalah shared memory
+        options.add_argument('--disable-gpu')  # Disable GPU hardware acceleration
+        
         # Optimasi untuk scraping skala besar
-        options.add_argument('--disable-gpu')
-        options.add_argument('--no-sandbox')
-        options.add_argument('--disable-dev-shm-usage')
         options.add_argument('--disable-blink-features=AutomationControlled')
         options.add_experimental_option('excludeSwitches', ['enable-automation'])
         options.add_experimental_option('useAutomationExtension', False)
+        
+        # Tambahan optimasi resource untuk stabilitas
+        options.add_argument('--disable-extensions')
+        options.add_argument('--disable-setuid-sandbox')
+        options.add_argument('--disable-accelerated-2d-canvas')
+        options.add_argument('--disable-software-rasterizer')
         
         # Disable images untuk kecepatan
         if self.config.disable_images:
