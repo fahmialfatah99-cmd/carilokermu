@@ -4,68 +4,23 @@ import csv
 import os
 from datetime import datetime
 
-# Daftar kota populer
+# Daftar kota populer untuk referensi (user bisa ketik apa saja)
 CITIES = [
-    "Jakarta",
-    "Jakarta Pusat",
-    "Jakarta Selatan",
-    "Jakarta Barat",
-    "Jakarta Timur",
-    "Jakarta Utara",
-    "Bandung",
-    "Surabaya",
-    "Yogyakarta",
-    "Semarang",
-    "Medan",
-    "Denpasar",
-    "Makassar",
-    "Palembang",
-    "Tangerang",
-    "Bekasi",
-    "Depok",
-    "Bogor",
-    "Batam",
-    "Balikpapan",
-    "Malang",
-    "Solo",
-    "Manado",
-    "Padang",
-    "Pekanbaru",
-    "Lampung",
-    "Samarinda",
-    "Banjarmasin",
-    "Pontianak",
-    "Mataram"
+    "Jakarta", "Bandung", "Surabaya", "Yogyakarta", "Semarang",
+    "Medan", "Denpasar", "Makassar", "Palembang", "Tangerang",
+    "Bekasi", "Depok", "Bogor", "Batam", "Balikpapan",
+    "Malang", "Solo", "Manado", "Padang", "Pekanbaru",
+    "Lampung", "Samarinda", "Banjarmasin", "Pontianak", "Mataram"
 ]
 
-# Daftar kategori pekerjaan populer
+# Daftar kategori pekerjaan populer untuk referensi
 JOB_CATEGORIES = [
-    "Administrasi",
-    "Akuntansi",
-    "Customer Service",
-    "Data Entry",
-    "Digital Marketing",
-    "Engineering",
-    "Finance",
-    "Graphic Designer",
-    "Human Resources",
-    "IT Developer",
-    "IT Support",
-    "Manager",
-    "Marketing",
-    "Nurse",
-    "Operator",
-    "Programmer",
-    "Sales",
-    "Secretary",
-    "Software Engineer",
-    "Staff",
-    "Supervisor",
-    "Teacher",
-    "Telecom",
-    "Warehouse",
-    "Web Developer",
-    "Writer"
+    "Administrasi", "Akuntansi", "Customer Service", "Data Entry",
+    "Digital Marketing", "Engineering", "Finance", "Graphic Designer",
+    "Human Resources", "IT Developer", "IT Support", "Manager",
+    "Marketing", "Nurse", "Operator", "Programmer", "Sales",
+    "Secretary", "Software Engineer", "Staff", "Supervisor",
+    "Teacher", "Telecom", "Warehouse", "Web Developer", "Writer"
 ]
 
 def display_menu():
@@ -74,43 +29,39 @@ def display_menu():
     print("           🎯 MENU PENCARI LOWONGAN KERJA 🎯")
     print("="*60)
     
-    print("\n📋 PILIH KOTA:")
+    print("\n📋 KOTA POPULER (contoh):")
     print("-"*40)
-    for i, city in enumerate(CITIES, 1):
-        print(f"   {i:2d}. {city}")
-    print("   00. Lainnya (input manual)")
+    for i, city in enumerate(CITIES[:10], 1):
+        print(f"   • {city}")
+    print(f"   ... dan {len(CITIES)-10} kota lainnya")
+    print("\n💡 Ketik nama kota apa saja (misal: Jakarta, Bandung, Surabaya)")
     
-    print("\n💼 PILIH KATEGORI PEKERJAAN:")
+    print("\n💼 KATEGORI PEKERJAAN POPULER (contoh):")
     print("-"*40)
-    for i, job in enumerate(JOB_CATEGORIES, 1):
-        print(f"   {i:2d}. {job}")
-    print("   00. Lainnya (input manual)")
+    for i, job in enumerate(JOB_CATEGORIES[:10], 1):
+        print(f"   • {job}")
+    print(f"   ... dan {len(JOB_CATEGORIES)-10} kategori lainnya")
+    print("\n💡 Ketik posisi/kata kunci apa saja (misal: Admin, Programmer, Sales)")
     
     print("\n" + "="*60)
 
 def get_city_choice():
-    """Mendapatkan pilihan kota dari user"""
+    """Mendapatkan pilihan kota dari user dengan input teks"""
     while True:
-        choice = input("\n🏙️  Masukkan nomor kota (atau 00 untuk input manual): ").strip()
-        
-        if choice == "00":
-            return input("   Masukkan nama kota: ").strip()
-        elif choice.isdigit() and 1 <= int(choice) <= len(CITIES):
-            return CITIES[int(choice) - 1]
+        city = input("\n🏙️  Masukkan nama kota: ").strip()
+        if city:
+            return city.title()  # Format title case
         else:
-            print("   ❌ Pilihan tidak valid. Silakan coba lagi.")
+            print("   ❌ Nama kota tidak boleh kosong. Silakan coba lagi.")
 
 def get_job_choice():
-    """Mendapatkan pilihan pekerjaan dari user"""
+    """Mendapatkan pilihan pekerjaan dari user dengan input teks"""
     while True:
-        choice = input("\n💼 Masukkan nomor kategori (atau 00 untuk input manual): ").strip()
-        
-        if choice == "00":
-            return input("   Masukkan posisi/kata kunci: ").strip()
-        elif choice.isdigit() and 1 <= int(choice) <= len(JOB_CATEGORIES):
-            return JOB_CATEGORIES[int(choice) - 1]
+        job = input("\n💼 Masukkan posisi/kata kunci: ").strip()
+        if job:
+            return job.title()  # Format title case
         else:
-            print("   ❌ Pilihan tidak valid. Silakan coba lagi.")
+            print("   ❌ Posisi tidak boleh kosong. Silakan coba lagi.")
 
 def get_search_options():
     """Mendapatkan opsi pencarian tambahan"""
@@ -118,16 +69,16 @@ def get_search_options():
     print("-"*40)
     
     while True:
-        pages = input("   Jumlah halaman (1-10, default 3): ").strip()
+        pages = input("   Batas jumlah halaman (kosongkan untuk unlimited): ").strip()
         if not pages:
-            pages = 3
+            pages = None  # Unlimited
             break
         try:
             pages = int(pages)
-            if 1 <= pages <= 10:
+            if pages > 0:
                 break
             else:
-                print("   ❌ Masukkan angka antara 1-10")
+                print("   ❌ Masukkan angka positif")
         except ValueError:
             print("   ❌ Masukkan angka yang valid")
     
@@ -135,12 +86,12 @@ def get_search_options():
     
     return pages, debug
 
-async def scrape_job(keyword, location, max_pages=3, headless=True):
+async def scrape_job(keyword, location, max_pages=None, headless=True):
     """Scrape lowongan kerja dari JobStreet dengan data lengkap"""
-    # Format URL JobStreet otomatis
-    loc_slug = location.replace(" ", "-").lower()
-    keyword_slug = keyword.replace(' ', '-')
-    base_url = f"https://id.jobstreet.com/id/jobs/{keyword_slug}-jobs-in-{loc_slug}"
+    # Format URL JobStreet - menggunakan format pencarian langsung
+    search_keyword = keyword.replace(' ', '%20')
+    search_location = location.replace(' ', '%20')
+    base_url = f"https://id.jobstreet.com/id/jobs?keyword={search_keyword}&location={search_location}"
     
     print(f"\n{'='*60}")
     print(f"🔍 MENCARI LOWONGAN: {keyword.upper()}")
@@ -149,37 +100,49 @@ async def scrape_job(keyword, location, max_pages=3, headless=True):
     print(f"{'='*60}")
     
     jobs = []
+    page_num = 1
     
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=headless)
-        page = await browser.new_page()
-        
-        # Set user agent agar tidak terdeteksi sebagai bot
-        await page.set_extra_http_headers({
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        })
+        context = await browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        )
+        page = await context.new_page()
         
         try:
             await page.goto(base_url, timeout=60000)
-            await page.wait_for_timeout(5000)  # Tunggu loading
+            await page.wait_for_timeout(8000)  # Tunggu loading awal
             
-            # Loop halaman
-            for page_num in range(1, max_pages + 1):
-                print(f"\n📄 Memproses halaman {page_num}/{max_pages}...")
-                
-                # Tunggu elemen job card muncul
-                try:
-                    await page.wait_for_selector('[data-automation="jobCardTitle"]', timeout=10000)
-                except:
-                    print("   ⚠️ Timeout menunggu job cards")
+            # Loop halaman sampai tidak ada next atau mencapai batas
+            while True:
+                if max_pages and page_num > max_pages:
+                    print(f"\n✅ Mencapai batas halaman ({max_pages})")
                     break
+                    
+                print(f"\n📄 Memproses halaman {page_num}...")
+                
+                # Tunggu elemen job card muncul dengan berbagai selector fallback
+                try:
+                    await page.wait_for_selector('[data-automation="jobCardTitle"], article[data-automation-id="jobCard"]', timeout=15000)
+                except Exception as e:
+                    print("   ⚠️ Timeout menunggu job cards, mencoba scroll...")
+                    # Coba scroll untuk trigger lazy loading
+                    await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                    await page.wait_for_timeout(5000)
+                    
+                    # Cek lagi setelah scroll
+                    try:
+                        await page.wait_for_selector('[data-automation="jobCardTitle"]', timeout=5000)
+                    except:
+                        print("   ⚠️ Tidak ada job cards ditemukan.")
+                        break
                 
                 # Ambil semua kartu lowongan
                 job_cards = await page.query_selector_all('article[data-automation-id="jobCard"]')
                 
                 if not job_cards:
-                    # Fallback selector
-                    job_cards = await page.query_selector_all('[data-automation="jobCardTitle"]')
+                    # Fallback ke selector alternatif
+                    job_cards = await page.query_selector_all('[data-automation="jobCardTitle"] >> .. >> ..')
                 
                 if not job_cards:
                     print("   ⚠️ Tidak ditemukan lowongan atau terdeteksi bot.")
@@ -227,7 +190,7 @@ async def scrape_job(keyword, location, max_pages=3, headless=True):
                         education = await edu_el.inner_text() if edu_el else "Tidak ditentukan"
                         
                         jobs.append({
-                            'No': idx,
+                            'No': len(jobs) + 1,
                             'Posisi': title.strip(),
                             'Perusahaan': company.strip(),
                             'Lokasi': loc.strip(),
@@ -237,25 +200,29 @@ async def scrape_job(keyword, location, max_pages=3, headless=True):
                             'Pendidikan': education.strip(),
                             'Tanggal Posting': posted_date.strip(),
                             'Deskripsi Singkat': description.strip()[:200] + "..." if len(description.strip()) > 200 else description.strip(),
-                            'Link': f"https://id.jobstreet.com{link}" if link.startswith('/') else link,
+                            'Link': f"https://id.jobstreet.com{link}" if link and link.startswith('/') else link,
                             'Waktu Scraping': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                         })
                     except Exception as e:
                         print(f"   ⚠️ Error mengambil data job {idx}: {e}")
                         continue
 
-                # Klik next page jika ada
-                if page_num < max_pages:
-                    next_btn = await page.query_selector('[aria-label="Next Page"]')
-                    if next_btn:
-                        await next_btn.click()
-                        await page.wait_for_timeout(3000)
-                    else:
-                        print("   ✅ Halaman terakhir tercapai.")
-                        break
-                        
+                # Cek apakah ada tombol next
+                next_btn = await page.query_selector('[aria-label="Next Page"], button:has-text("Next"), a:has-text("Next")')
+                
+                if next_btn:
+                    print(f"   ➡️  Pindah ke halaman berikutnya...")
+                    await next_btn.click()
+                    await page.wait_for_timeout(4000)  # Tunggu halaman baru load
+                    page_num += 1
+                else:
+                    print("   ✅ Halaman terakhir tercapai.")
+                    break
+                    
         except Exception as e:
             print(f"❌ Error: {e}")
+            import traceback
+            traceback.print_exc()
         finally:
             await browser.close()
 
