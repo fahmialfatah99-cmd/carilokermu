@@ -24,10 +24,14 @@ logger = logging.getLogger(__name__)
 
 try:
     from playwright.sync_api import sync_playwright
-    from playwright_stealth import stealth_sync
+    from playwright_stealth import stealth_sync as stealth
 except ImportError:
-    logger.error("Playwright tidak terinstall. Jalankan: pip install playwright playwright-stealth")
-    sys.exit(1)
+    try:
+        from playwright.sync_api import sync_playwright
+        from playwright_stealth import stealth
+    except ImportError:
+        logger.error("Playwright tidak terinstall. Jalankan: pip install playwright playwright-stealth")
+        sys.exit(1)
 
 # Konfigurasi Khusus Jobstreet
 JOBSTREET_BASE_URL = "https://www.jobstreet.co.id"

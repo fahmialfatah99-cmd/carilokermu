@@ -62,8 +62,29 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 4. Setup Browser (Khusus Chromium di Linux)
-Pastikan Chromium dan driver-nya terinstall di sistem Anda.
+### 4. Install Browser Engine Playwright (WAJIB!)
+
+Ini adalah langkah yang **sering terlewatkan** dan menyebabkan error `Playwright tidak terinstall`.
+Playwright membutuhkan browser engine khusus yang harus diunduh terpisah.
+
+```bash
+# Unduh dan install Chromium engine untuk Playwright
+playwright install chromium
+
+# (Opsional) Install dependencies sistem Linux jika diperlukan
+playwright install-deps chromium
+```
+
+> ⚠️ **PENTING**: 
+> - Jangan lewatkan langkah ini! Error `Playwright tidak terinstall` muncul karena browser engine belum diunduh.
+> - Perintah ini hanya perlu dilakukan **sekali saja** setelah instalasi awal.
+> - Ukuran download sekitar 100-150 MB.
+
+---
+
+### 5. Setup Browser Sistem (Khusus Chromium di Linux)
+
+Jika Anda menggunakan **Chromium** bawaan sistem Linux (bukan yang diunduh Playwright), pastikan driver-nya terinstall:
 
 #### **Untuk Ubuntu/Debian/Mint:**
 ```bash
