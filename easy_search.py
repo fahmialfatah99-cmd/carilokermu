@@ -81,11 +81,13 @@ class EasyJobScraper:
                     title_el = card.select_one('h1, h2, h3, a[class*="title"], span[class*="title"]')
                     comp_el = card.select_one('span[class*="company"], div[class*="company"]')
                     loc_el = card.select_one('span[class*="location"], div[class*="location"]')
+                    salary_el = card.select_one('span[class*="salary"], div[class*="salary"], span[class*="remuneration"]')
                     link_el = card.select_one('a[href]')
 
                     title = title_el.get_text(strip=True) if title_el else "Tidak ada judul"
                     company = comp_el.get_text(strip=True) if comp_el else "-"
                     loc = loc_el.get_text(strip=True) if loc_el else self.location
+                    salary = salary_el.get_text(strip=True) if salary_el else "Informasi tidak tersedia"
                     link = urljoin(url, link_el['href']) if link_el and link_el.get('href') else ""
 
                     if title and link:
@@ -93,6 +95,7 @@ class EasyJobScraper:
                             "Judul": title,
                             "Perusahaan": company,
                             "Lokasi": loc,
+                            "Gaji": salary,
                             "Link": link,
                             "Sumber": "jobstreet"
                         })
@@ -178,7 +181,7 @@ class EasyJobScraper:
         
         try:
             with open(self.output_file, 'w', newline='', encoding='utf-8') as f:
-                writer = csv.DictWriter(f, fieldnames=["Judul", "Perusahaan", "Lokasi", "Link", "Sumber"])
+                writer = csv.DictWriter(f, fieldnames=["Judul", "Perusahaan", "Lokasi", "Gaji", "Link", "Sumber"])
                 writer.writeheader()
                 writer.writerows(jobs)
             print(f"\n✅ SUKSES! Tersimpan {len(jobs)} data ke file: {os.path.abspath(self.output_file)}")

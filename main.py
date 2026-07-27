@@ -95,6 +95,7 @@ class JobScraper:
                     title_elem = card.select_one('h1, h2, h3, a[class*="title"], span[class*="title"]')
                     company_elem = card.select_one('span[class*="company"], a[class*="company"], div[class*="company"]')
                     location_elem = card.select_one('span[class*="location"], div[class*="location"], span[class*="place"]')
+                    salary_elem = card.select_one('span[class*="salary"], div[class*="salary"], span[class*="remuneration"]')
                     link_elem = card.select_one('a[href]')
                     
                     if not title_elem and not link_elem:
@@ -103,6 +104,7 @@ class JobScraper:
                     title = title_elem.get_text(strip=True) if title_elem else "Judul tidak tersedia"
                     company = company_elem.get_text(strip=True) if company_elem else "Perusahaan tidak disebutkan"
                     location = location_elem.get_text(strip=True) if location_elem else LOCATION_FILTER
+                    salary = salary_elem.get_text(strip=True) if salary_elem else "Informasi tidak tersedia"
                     
                     link = ""
                     if link_elem and link_elem.get('href'):
@@ -119,6 +121,7 @@ class JobScraper:
                             "Judul": title,
                             "Perusahaan": company,
                             "Lokasi": location,
+                            "Gaji": salary,
                             "Link": link,
                             "Sumber": urlparse(url).netloc
                         })
@@ -216,7 +219,7 @@ def save_to_csv(jobs: List[Dict], filename: str):
 
     try:
         with open(filename, mode='w', newline='', encoding='utf-8') as file:
-            writer = csv.DictWriter(file, fieldnames=["Judul", "Perusahaan", "Lokasi", "Link", "Sumber"])
+            writer = csv.DictWriter(file, fieldnames=["Judul", "Perusahaan", "Lokasi", "Gaji", "Link", "Sumber"])
             writer.writeheader()
             writer.writerows(jobs)
         logger.success(f"✅ Berhasil menyimpan {len(jobs)} data ke '{filename}'")
