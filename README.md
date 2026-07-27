@@ -4,9 +4,9 @@ Aplikasi Python untuk mencari lowongan kerja dari JobStreet secara otomatis deng
 
 ## ✨ Fitur Utama
 
-- **Menu Interaktif**: Pilihan kota dan kategori pekerjaan dengan nomor
-- **30+ Kota Populer**: Jakarta, Bandung, Surabaya, Yogyakarta, dan lainnya
-- **26+ Kategori Pekerjaan**: Administrasi, IT, Marketing, Engineering, dll
+- **Input Fleksibel**: Ketik langsung nama kota dan posisi yang diinginkan (tidak perlu pilih nomor)
+- **Contoh Kota & Pekerjaan**: Tampilan contoh kota dan kategori populer sebagai referensi
+- **Unlimited Halaman**: Bisa scrape semua halaman atau batasi sesuai kebutuhan
 - **Data Lengkap**: 
   - Posisi/Jabatan
   - Nama Perusahaan
@@ -22,6 +22,7 @@ Aplikasi Python untuk mencari lowongan kerja dari JobStreet secara otomatis deng
 - **Export ke CSV**: Data tersimpan rapi dalam format Excel-compatible
 - **Ringkasan Otomatis**: Statistik hasil pencarian ditampilkan di akhir
 - **Anti-Bot Protection**: User agent customization untuk menghindari deteksi bot
+- **Auto Pagination**: Navigasi otomatis ke halaman berikutnya sampai selesai
 
 ## 📋 Prasyarat
 
@@ -107,47 +108,47 @@ python jalan_otomatis.py
 
 ### Langkah 3: Pilih Kota
 
-Aplikasi akan menampilkan daftar 30 kota populer. Masukkan nomor kota yang diinginkan, atau ketik `00` untuk input manual.
+Aplikasi akan menampilkan contoh kota-kota populer. **Ketik langsung nama kota** yang diinginkan.
 
 ```
-📋 PILIH KOTA:
+📋 KOTA POPULER (contoh):
 ----------------------------------------
-    1. Jakarta
-    2. Jakarta Pusat
-    3. Jakarta Selatan
-   ...
-   30. Mataram
-   00. Lainnya (input manual)
+   • Jakarta
+   • Bandung
+   • Surabaya
+   ... dan 15 kota lainnya
 
-🏙️  Masukkan nomor kota (atau 00 untuk input manual): 
+💡 Ketik nama kota apa saja (misal: Jakarta, Bandung, Surabaya)
+
+🏙️  Masukkan nama kota: 
 ```
 
-### Langkah 4: Pilih Kategori Pekerjaan
+### Langkah 4: Pilih Posisi/Kata Kunci
 
-Pilih dari 26+ kategori pekerjaan yang tersedia, atau input manual dengan mengetik `00`.
+**Ketik langsung posisi atau kata kunci** pekerjaan yang dicari.
 
 ```
-💼 PILIH KATEGORI PEKERJAAN:
+💼 KATEGORI PEKERJAAN POPULER (contoh):
 ----------------------------------------
-    1. Administrasi
-    2. Akuntansi
-    3. Customer Service
-   ...
-   26. Writer
-   00. Lainnya (input manual)
+   • Administrasi
+   • Akuntansi
+   • Customer Service
+   ... dan 16 kategori lainnya
 
-💼 Masukkan nomor kategori (atau 00 untuk input manual): 
+💡 Ketik posisi/kata kunci apa saja (misal: Admin, Programmer, Sales)
+
+💼 Masukkan posisi/kata kunci: 
 ```
 
 ### Langkah 5: Atur Opsi Pencarian
 
-- **Jumlah Halaman**: 1-10 halaman (default: 3)
+- **Batas Jumlah Halaman**: Kosongkan untuk unlimited ( scrape semua halaman ), atau isi angka tertentu
 - **Mode Debug**: Lihat browser berjalan (y/n, default: n)
 
 ```
 ⚙️  OPSI PENCARIAN:
 ----------------------------------------
-   Jumlah halaman (1-10, default 3): 
+   Batas jumlah halaman (kosongkan untuk unlimited): 
    Lihat browser berjalan? (y/n, default n): 
 ```
 
@@ -179,67 +180,34 @@ Buka file CSV dengan Excel, Google Sheets, atau aplikasi spreadsheet lainnya.
 |----|--------|------------|--------|------|----------------|------------|------------|-----------------|-------------------|------|----------------|
 | 1 | Staff Administrasi | PT ABC | Jakarta | Rp 4-6 Juta | Full Time | 1 tahun | D3 | 2 hari lalu | Bertanggung jawab... | https://... | 2024-01-15 10:30:00 |
 
-## 🏙️ Daftar Kota Tersedia
+## 🏙️ Contoh Kota yang Bisa Digunakan
 
-1. Jakarta
-2. Jakarta Pusat
-3. Jakarta Selatan
-4. Jakarta Barat
-5. Jakarta Timur
-6. Jakarta Utara
-7. Bandung
-8. Surabaya
-9. Yogyakarta
-10. Semarang
-11. Medan
-12. Denpasar
-13. Makassar
-14. Palembang
-15. Tangerang
-16. Bekasi
-17. Depok
-18. Bogor
-19. Batam
-20. Balikpapan
-21. Malang
-22. Solo
-23. Manado
-24. Padang
-25. Pekanbaru
-26. Lampung
-27. Samarinda
-28. Banjarmasin
-29. Pontianak
-30. Mataram
+Anda bisa mengetik nama kota apa saja, contohnya:
+- Jakarta
+- Bandung
+- Surabaya
+- Yogyakarta
+- Semarang
+- Medan
+- Denpasar
+- Makassar
+- Tangerang
+- Bekasi
+- Dan kota lainnya di Indonesia
 
-## 💼 Daftar Kategori Pekerjaan
+## 💼 Contoh Posisi/Kata Kunci
 
-1. Administrasi
-2. Akuntansi
-3. Customer Service
-4. Data Entry
-5. Digital Marketing
-6. Engineering
-7. Finance
-8. Graphic Designer
-9. Human Resources
-10. IT Developer
-11. IT Support
-12. Manager
-13. Marketing
-14. Nurse
-15. Operator
-16. Programmer
-17. Sales
-18. Secretary
-19. Software Engineer
-20. Staff
-21. Supervisor
-22. Teacher
-23. Telecom
-24. Warehouse
-25. Web Developer
-26. Writer
+Anda bisa mengetik posisi atau kata kunci apa saja, contohnya:
+- Administrasi
+- Programmer
+- Sales
+- Marketing
+- Engineer
+- Designer
+- Accountant
+- Customer Service
+- Data Entry
+- Dan posisi lainnya
 
 ## ⚠️ Catatan Penting
 
