@@ -1,31 +1,44 @@
-```
+```gitignore
 # Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.Python
+env/
+venv/
+.venv/
+.ENV
+.ENV.*
+.venv.bak/
+pip-log.txt
+pip-delete-this-directory.txt
 
-# Logs and temp files
-*.log
-*.tmp
+# Testing
+.coverage
+coverage/
+htmlcov/
+.noserc
+.tox/
+.cover/
+
+# IDE
+.vscode/
+.idea/
 *.swp
+*.swo
+*.tmp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
 
 # Environment
 .env
 .env.local
-*.env.*
-
-# Editors
-.vscode/
-.idea/
-
-# Dependencies
-.venv/
-venv/
-node_modules/
-
-# Build artifacts
-dist/
-build/
-target/
+.env.*
+!.env.example
 ```

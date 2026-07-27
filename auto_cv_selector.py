@@ -1,7 +1,3 @@
---- auto_cv_selector.py (原始)
-
-
-+++ auto_cv_selector.py (修改后)
 #!/usr/bin/env python3
 """
 Auto CV Generator - Pilih Lowongan & Generate CV Otomatis
