@@ -55,21 +55,33 @@ class EasyJobScraper:
             await self.page.goto(url, wait_until="networkidle", timeout=60000)
             await self.page.wait_for_timeout(3000) # Tunggu render
             
+            # Scroll untuk trigger lazy loading
+            await self.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            await self.page.wait_for_timeout(2000)
+            await self.page.evaluate("window.scrollTo(0, 0)")
+            await self.page.wait_for_timeout(1000)
+            
             content = await self.page.content()
             soup = BeautifulSoup(content, 'lxml')
             
             # Selector khusus JobStreet Indonesia (updated 2024)
-            cards = soup.select('article[data-automation-id="jobCard"], div[data-automation-id="jobCard"]')
+            cards = soup.select('article[data-automation-id="jobCard"]')
             
+            # Fallback ke div jika article tidak ditemukan
+            if not cards:
+                cards = soup.select('div[data-automation-id="jobCard"]')
+                
             # Jika tidak ketemu dengan selector spesifik, coba fallback
             if not cards:
                 # Coba ambil parent dari jobCardTitle
                 title_elems = soup.select('[data-automation="jobCardTitle"]')
                 if title_elems:
                     # Ambil parent terdekat yang merupakan container
-                    cards = [elem.find_parent(['article', 'div', 'li']) for elem in title_elems if elem.find_parent(['article', 'div', 'li'])]
-                else:
                     cards = []
+                    for elem in title_elems:
+                        parent = elem.find_parent(['article', 'div'])
+                        if parent and parent not in cards:
+                            cards.append(parent)
             
             # Fallback terakhir
             if not cards:
@@ -90,10 +102,10 @@ class EasyJobScraper:
             for card in cards:
                 try:
                     # Selector spesifik JobStreet (prioritas data-automation)
-                    title_el = card.select_one('[data-automation="jobCardTitle"], a[data-automation="jobCardTitle"], h1, h2, h3, a[class*="title"]')
-                    comp_el = card.select_one('[data-automation="jobCardCompany"], span[data-automation="jobCardCompany"], div[class*="company"], span[class*="company"]')
-                    loc_el = card.select_one('[data-automation="jobCardLocation"], span[data-automation="jobCardLocation"], div[class*="location"]')
-                    salary_el = card.select_one('[data-automation="jobCardSalary"], span[data-automation="jobCardSalary"], div[class*="salary"], span[class*="remuneration"]')
+                    title_el = card.select_one('[data-automation="jobCardTitle"]')
+                    comp_el = card.select_one('[data-automation="jobCardCompany"]')
+                    loc_el = card.select_one('[data-automation="jobCardLocation"]')
+                    salary_el = card.select_one('[data-automation="jobCardSalary"]')
                     link_el = card.select_one('a[data-automation="jobCardTitle"], a[href]')
 
                     title = title_el.get_text(strip=True) if title_el else "Tidak ada judul"
