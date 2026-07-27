@@ -7,8 +7,8 @@ dari berbagai situs job portal. Dilengkapi dengan stealth mode untuk menghindari
 
 import pandas as pd
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
-from playwright_stealth import stealth_sync
-from selectolax.parser import HTML
+from playwright_stealth import stealth
+from selectolax.parser import HTMLParser
 from typing import List, Dict, Optional
 import logging
 
@@ -42,7 +42,7 @@ def scrape_loker(url_target: str, keyword: str, max_pages: int = 3) -> List[Dict
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             )
             page = context.new_page()
-            stealth_sync(page)  # Menyamar sebagai browser asli
+            stealth(page)  # Menyamar sebagai browser asli
             
             # Coba beberapa pola URL umum
             url_patterns = [
@@ -73,7 +73,7 @@ def scrape_loker(url_target: str, keyword: str, max_pages: int = 3) -> List[Dict
             page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
             page.wait_for_timeout(2000)  # Tunggu 2 detik setelah scroll
             
-            tree = HTML(page.content())
+            tree = HTMLParser(page.content())
             
             # --- SESUAIKAN CSS SELECTOR DI BAWAH INI DENGAN WEBSITE TARGET ---
             # Contoh struktur umum (misal: Glints/Jobstreet/LinkedIn)
@@ -149,7 +149,7 @@ def scrape_loker(url_target: str, keyword: str, max_pages: int = 3) -> List[Dict
                         page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
                         page.wait_for_timeout(2000)
                         
-                        tree = HTML(page.content())
+                        tree = HTMLParser(page.content())
                         # Proses kartu lowongan seperti sebelumnya
                         for card_selector in selectors['card']:
                             job_cards = tree.css(card_selector)

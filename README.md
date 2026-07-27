@@ -17,13 +17,14 @@ Script Python untuk melakukan scraping lowongan kerja dari berbagai situs job po
 - **User-Friendly**: Cocok untuk non-programmer
 
 ### 🔧 Mode Manual (Advanced)
-- **Stealth Mode**: Menggunakan playwright-stealth untuk menghindari deteksi bot
+- **Stealth Mode**: Menggunakan playwright-stealth dengan API `stealth()` terbaru untuk menghindari deteksi bot
 - **Multi-URL Pattern**: Mencoba beberapa pola URL otomatis
 - **Pagination Support**: Scraping multiple halaman sekaligus
 - **Dynamic Content**: Menangani konten JavaScript dinamis
 - **Flexible Selectors**: Kompatibel dengan berbagai website job portal
 - **Logging System**: Monitoring proses real-time
 - **Export CSV**: Data terstruktur siap analisis
+- **HTMLParser**: Menggunakan selectolax HTMLParser untuk parsing HTML yang lebih cepat dan kompatibel
 
 ---
 
@@ -573,8 +574,8 @@ Gunakan script ini dengan bijak dan bertanggung jawab:
 
 - [pandas](https://pandas.pydata.org/) - Manipulasi dan export data
 - [playwright](https://playwright.dev/) - Browser automation
-- [playwright-stealth](https://github.com/AtuboDad/playwright-stealth) - Stealth mode
-- [selectolax](https://github.com/rushter/selectolax) - HTML parsing cepat
+- [playwright-stealth](https://github.com/AtuboDad/playwright-stealth) - Stealth mode (API terbaru menggunakan `stealth()`)
+- [selectolax](https://github.com/rushter/selectolax) - HTML parsing cepat (menggunakan `HTMLParser`)
 
 ---
 
