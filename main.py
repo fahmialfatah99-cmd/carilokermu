@@ -89,11 +89,15 @@ def main():
         
         # Apply Stealth (Anti-Deteksi Bot)
         try:
+            from playwright_stealth import stealth_sync
             stealth_sync(page)
-        except TypeError:
+        except (TypeError, ImportError):
             # Fallback jika versi library berbeda
-            from playwright_stealth import stealth
-            stealth(page)
+            try:
+                from playwright_stealth import stealth
+                stealth(page)
+            except Exception:
+                pass  # Skip stealth jika gagal total
 
         try:
             # 1. Buka Jobstreet
