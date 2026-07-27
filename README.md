@@ -1,4 +1,4 @@
-# 🚀 CariLokerMu - Job Portal Scraper & Auto Apply
+# 🔍 CariLokerMu - Job Portal Scraper & Auto Apply
 
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -16,6 +16,9 @@ Aplikasi otomatis untuk mencari, melamar, dan mengelola lowongan kerja dari berb
 | 🤖 **Auto Apply Jobstreet** | Lamar otomatis ke semua lowongan di Jobstreet | ✅ Siap Pakai |
 | 📊 **Export Data** | Simpan hasil pencarian ke CSV/Excel | ✅ Siap Pakai |
 | 🎯 **Multi-Mode** | Mode Easy, Manual, dan Auto Apply | ✅ Siap Pakai |
+| 🌐 **Auto-Buka Browser** | Browser terbuka otomatis untuk proses scraping & apply | ✅ Siap Pakai |
+| ⌨️ **Ketik Otomatis** | Input field diisi otomatis seperti manusia mengetik | ✅ Siap Pakai |
+| 📍 **Pilih Lokasi Manual** | Bisa memilih lokasi spesifik sesuai kebutuhan | ✅ Siap Pakai |
 
 ---
 
@@ -173,59 +176,52 @@ python3 main.py
 
 **Program akan memandu Anda melalui:**
 
-1. **Input URL website job portal** (contoh: `https://www.jobstreet.co.id`)
-2. **Input kata kunci pencarian** (contoh: `admin`, `data analyst`)
+1. **Input posisi/kata kunci** (contoh: `admin`, `data analyst`)
+2. **Input lokasi/kota** (contoh: `Jakarta`, `Surabaya`) - bisa dipilih manual
 3. **Input jumlah halaman** yang akan di-scrape (default: 3)
-4. **Menampilkan daftar lowongan** yang ditemukan
-5. **Memilih lowongan** untuk dilamar:
+4. **Browser terbuka otomatis** untuk menampilkan proses scraping
+5. **Input field diisi otomatis** seperti manusia mengetik
+6. **Menampilkan daftar lowongan** yang ditemukan
+7. **Memilih lowongan** untuk dilamar:
    - Input nomor lowongan (pisahkan dengan koma untuk multiple)
    - Ketik `all` untuk memilih semua
    - Ketik `q` untuk keluar
-6. **Generate CV otomatis** (opsional) untuk lowongan terpilih
+8. **Generate CV otomatis** (opsional) untuk lowongan terpilih
 
 **Contoh Sesi Lengkap:**
 ```
-🔍 PENCARI LOWONGAN KERJA INTERAKTIF
+============================================================
+🔍 PENCARI LOWONGAN KERJA OTOMATIS (JOBSTREET)
 ============================================================
 
-📌 Masukkan URL website job portal: https://www.jobstreet.co.id
-🔎 Kata kunci pencarian: admin
-📄 Jumlah maksimal halaman (default: 3): 3
+💼 Posisi / Kata Kunci (contoh: Admin, Staff Gudang): Admin
+📍 Lokasi / Kota (contoh: Jakarta, Surabaya): Jakarta
+📄 Jumlah Halaman (default 3): 3
 
-⏳ Mencari lowongan untuk 'admin'...
-
-✅ SELESAI!
-   Total lowongan ditemukan: 30
-   File hasil: loker_admin_20260727_160440.csv
-
-📋 DAFTAR LOWONGAN DITEMUKAN:
+⏳ Memulai pencarian: 'Admin' di 'Jakarta'...
 ------------------------------------------------------------
-  1. Staff Administrasi - PT Maju Jaya (Jakarta)
-  2. Admin Officer - CV Berkah Sentosa (Bandung)
-  3. Data Entry - Tech Solutions Indonesia (Surabaya)
-  ...
+🌐 Membuka Jobstreet.co.id...
+⌨️ Mengetik posisi: 'Admin'...
+⌨️ Mengetik lokasi: 'Jakarta'...
+🔍 Mengklik tombol cari...
 
-🎯 PILIH LOWONGAN UNTUK DILAMAR
+📄 Memproses Halaman 1...
+   Ditemukan 10 lowongan di halaman ini.
+   [1] Staff Administrasi - PT Maju Jaya
+   [2] Admin Officer - CV Berkah Sentosa
+   ...
+
 ============================================================
-➤ Pilihan Anda: 1,3,5
-✅ Berhasil memilih 3 lowongan
-
-📝 Lowongan terpilih disimpan di: selected_loker_admin_20260727_160440.csv
-
-📄 GENERATE CV OTOMATIS?
+✅ SELESAI! Total lowongan ditemukan: 30
+💾 Disimpan ke: loker_admin_jakarta_20260727_160440.csv
 ============================================================
-Apakah Anda ingin generate CV? (y/n): y
-🔄 Menjalankan auto_cv_selector.py...
 ```
 
-**Alternatif Command Line (tanpa menu interaktif):**
-Jika Anda ingin cara cepat tanpa menu interaktif, edit langsung di `main.py`:
-```python
-TARGET_SITE = "https://www.jobstreet.co.id"
-KEYWORD = "admin"
-MAX_PAGES = 3
-```
-Lalu jalankan: `python3 main.py`
+**Fitur Unggulan:**
+- ✅ **Auto-buka browser**: Browser terbuka otomatis untuk melihat proses
+- ✅ **Ketik otomatis**: Input field diisi karakter per karakter seperti manusia
+- ✅ **Pilih lokasi manual**: Bisa menentukan lokasi spesifik sesuai kebutuhan
+- ✅ **Tanpa error**: Handle error yang baik dengan fallback metode alternatif
 
 ---
 
@@ -242,20 +238,42 @@ python3 auto_cv_selector.py
 2. Menampilkan daftar lowongan yang ditemukan
 3. **Anda diminta memilih nomor lowongan** yang ingin dilamar (bisa pilih beberapa)
 4. CV dan Cover Letter akan dibuat otomatis dalam format `.docx` dan `.pdf`
-5. File tersimpan di folder `carilokermu/`
+5. File tersimpan di folder `carilokermu/cv_generated/`
 
 **Contoh Output:**
 ```
-Ditemukan 30 lowongan dari file: loker_admin_20260727_160440.csv
+================================================================================
+🚀 AUTO CV GENERATOR - PILIH LOWONGAN & LAMAR OTOMATIS
+================================================================================
 
-Pilih lowongan yang ingin dilamar (ketik nomor, pisahkan dengan koma):
-1. Admin Staff - PT. Sejahtera
-2. Administrative Assistant - CV. Maju Jaya
-3. Data Entry - Tbk. Global Corp
-...
+📂 Memuat data diri...
+✅ Data diri dimuat: Nama Anda
 
-Masukkan pilihan Anda: 1,3,5
-✅ CV berhasil dibuat untuk 3 lowongan terpilih!
+📂 Memuat hasil scraping...
+📄 Membaca dari: loker_admin_jakarta_20260727_160440.csv
+
+================================================================================
+📋 DAFTAR LOWONGAN TERSEDIA
+================================================================================
+
+[1] Staff Administrasi
+    🏢 Perusahaan: PT Maju Jaya
+    📍 Lokasi: Jakarta
+    💰 Gaji: N/A
+    📅 Scraped: 2026-07-27 16:04:40
+    🔗 Link: https://www.jobstreet.co.id/job/...
+
+👉 Masukkan nomor lowongan yang ingin dilamar (atau 0 untuk keluar): 1
+
+🎯 Anda memilih: Staff Administrasi di PT Maju Jaya
+
+👉 Lanjutkan generate CV & Cover Letter? (y/n): y
+
+⚙️  Generating CV...
+✅ CV berhasil dibuat: CV_Nama_Administrasi_20260727_160440.docx
+
+⚙️  Generating Cover Letter...
+✅ Cover Letter berhasil dibuat: CoverLetter_Nama_Administrasi_20260727_160440.docx
 ```
 
 **Tips:** 
@@ -296,15 +314,15 @@ Setelah menjalankan seluruh proses, Anda akan memiliki struktur file seperti ini
 
 ```
 carilokermu/
-├── loker_admin_20260727_160440.csv    # Hasil scraping lowongan
-├── output_cv/
-│   ├── CV_Nama_Posisi.docx           # CV format Word
-│   ├── CV_Nama_Posisi.pdf            # CV format PDF
+├── loker_admin_jakarta_20260727_160440.csv    # Hasil scraping lowongan
+├── cv_generated/
+│   ├── CV_Nama_Administrasi.docx           # CV format Word
+│   ├── CV_Nama_Administrasi.pdf            # CV format PDF
 │   └── Cover_Letter_Nama.docx        # Surat lamaran
 ├── logs/
 │   └── auto_apply_20260727.log       # Log proses auto apply
-└── config/
-    └── user_profile.json             # Data diri pengguna
+└── carilokermu/
+    └── data_diri.json             # Data diri pengguna
 ```
 
 ---
@@ -312,7 +330,7 @@ carilokermu/
 ## ⚙️ Konfigurasi
 
 ### Mengatur Data Diri
-Edit file `config/user_profile.json` untuk mengisi data diri yang akan digunakan pada CV dan form lamaran:
+Edit file `carilokermu/data_diri.json` untuk mengisi data diri yang akan digunakan pada CV dan form lamaran:
 
 ```json
 {
@@ -320,19 +338,16 @@ Edit file `config/user_profile.json` untuk mengisi data diri yang akan digunakan
   "email": "email@anda.com",
   "telepon": "08123456789",
   "linkedin": "linkedin.com/in/anda",
-  "pendidikan": "S1 Teknik Informatika",
-  "pengalaman": "2 tahun sebagai Admin"
-}
-```
-
-### Mengatur Lokasi Pencarian
-Edit file `config/search_config.json` untuk set lokasi default:
-
-```json
-{
-  "lokasi": "Jakarta",
-  "gaji_min": 5000000,
-  "tipe_pekerjaan": "Full-time"
+  "pendidikan_nama": "Universitas Contoh",
+  "pendidikan_jurusan": "Teknik Informatika",
+  "pendidikan_gelar": "S1",
+  "pendidikan_tahun_masuk": "2018",
+  "pendidikan_tahun_lulus": "2022",
+  "pendidikan_ipk": "3.75",
+  "pengalaman_jumlah": "2",
+  "keahlian_teknis": "Python, JavaScript, SQL",
+  "keahlian_soft_skill": "Komunikasi, Teamwork",
+  "bahasa": "Indonesia, Inggris"
 }
 ```
 
@@ -359,7 +374,7 @@ Edit file `config/search_config.json` untuk set lokasi default:
 | Login Jobstreet gagal | Clear cookie browser atau gunakan mode incognito manual |
 | CSV kosong/tidak ada data | Coba ubah keyword, tambah jumlah loker, atau cek koneksi internet |
 | Auto apply stuck di captcha | Selesaikan captcha manual, script akan lanjut otomatis setelah 30 detik |
-| CV tidak tergenerate | Cek folder `output_cv/` dan pastikan `config/user_profile.json` sudah diisi |
+| CV tidak tergenerate | Cek folder `cv_generated/` dan pastikan `carilokermu/data_diri.json` sudah diisi |
 | Error `Connection Reset` | Tunggu 5-10 menit lalu jalankan lagi (rate limiting) |
 | Script terlalu lambat | Normal, script memberi delay 3-5 detik antar lamaran untuk hindari blokir |
 | Chromium tidak bisa akses folder home | Jalankan: `sudo snap connect chromium:home` (untuk Snap users) |
@@ -380,8 +395,6 @@ google-chrome --version # Untuk Chrome
 
 # Install chromedriver jika diperlukan
 sudo apt install chromium-chromedriver -y  # Untuk Chromium
-# atau
-wget https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_*.deb  # Untuk Chrome
 
 # Set path browser secara manual jika script tidak menemukannya
 export CHROME_PATH=/usr/bin/chromium
@@ -399,7 +412,7 @@ sudo snap connect chromium:home
 ### Skenario 1: Lamar Cepat (5 Menit)
 ```bash
 # 1. Cari 10 loker admin
-python3 main.py "admin" 10
+python3 main.py
 
 # 2. Langsung auto apply (pakai CV default)
 python3 auto_apply_jobstreet.py
@@ -408,7 +421,7 @@ python3 auto_apply_jobstreet.py
 ### Skenario 2: Pilih Lowongan Favorit & Generate CV Custom
 ```bash
 # 1. Cari 20 loker
-python3 main.py "staff" 20
+python3 main.py
 
 # 2. Jalankan selector untuk memilih lowongan favorit secara interaktif
 #    Script akan menampilkan daftar dan Anda pilih nomor yang diinginkan
@@ -422,7 +435,7 @@ python3 auto_apply_jobstreet.py
 ### Skenario 3: Monitoring & Analisis
 ```bash
 # 1. Cari 50 loker untuk analisis pasar
-python3 main.py "marketing" 50
+python3 main.py
 
 # 2. Buka CSV di Excel untuk analisis
 # 3. Filter manual loker yang sesuai
@@ -431,15 +444,6 @@ python3 auto_cv_selector.py
 
 # 5. Auto apply hanya untuk yang terpilih
 python3 auto_apply_jobstreet.py
-```
-
-### Skenario 4: Bulk Apply dengan Filter Perusahaan
-```bash
-# 1. Cari semua loker di perusahaan target
-python3 main.py "admin" 50
-
-# 2. Auto apply dengan filter nama perusahaan
-python3 auto_apply_jobstreet.py --filter "PT. Perusahaan Besar"
 ```
 
 ---

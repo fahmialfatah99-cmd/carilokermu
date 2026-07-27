@@ -47,7 +47,7 @@ def load_lowongan():
         reader = csv.DictReader(f)
         for row in reader:
             # Support multiple column names for job title
-            judul = row.get('judul') or row.get('judul_lowongan') or row.get('title') or row.get('posisi')
+            judul = row.get('Posisi') or row.get('judul') or row.get('judul_lowongan') or row.get('title') or row.get('posisi')
             if judul:  # Skip baris kosong
                 lowongan.append(row)
 
@@ -57,12 +57,12 @@ def get_field(loker, field_name, default=''):
     """Helper untuk mengambil field dengan support multiple column names"""
     # Mapping field names yang mungkin
     field_mappings = {
-        'judul': ['judul', 'judul_lowongan', 'title', 'posisi', 'position'],
-        'perusahaan': ['perusahaan', 'company', 'nama_perusahaan'],
-        'lokasi': ['lokasi', 'location', 'kota'],
+        'judul': ['Posisi', 'judul', 'judul_lowongan', 'title', 'posisi', 'position'],
+        'perusahaan': ['Perusahaan', 'perusahaan', 'company', 'nama_perusahaan'],
+        'lokasi': ['Lokasi', 'lokasi', 'location', 'kota'],
         'gaji': ['gaji', 'salary', 'rentang_gaji'],
         'tanggal_scrape': ['tanggal_scrape', 'tanggal_posting', 'posted_date', 'tanggal'],
-        'link': ['link', 'url', 'website', 'job_url']
+        'link': ['Link', 'link', 'url', 'website', 'job_url']
     }
     
     if field_name in field_mappings:
@@ -120,6 +120,10 @@ def generate_cv(data_diri, lowongan):
     nama_depan = data_diri['nama_lengkap'].split()[0]
     nama_belakang = data_diri['nama_lengkap'].split()[-1] if len(data_diri['nama_lengkap'].split()) > 1 else ''
 
+    judul_lowongan = get_field(lowongan, 'judul', 'Lowongan')
+    nama_file_safe = "".join(c for c in judul_lowongan if c.isalnum() or c in (' ', '-', '_')).strip()
+    nama_file_safe = nama_file_safe.replace(' ', '_')
+
     filename_base = f"CV_{nama_depan}_{nama_belakang}_{nama_file_safe}_{timestamp}"
     file_docx = os.path.join(FOLDER_CV_OUTPUT, f"{filename_base}.docx")
     file_pdf = os.path.join(FOLDER_CV_OUTPUT, f"{filename_base}.pdf")
@@ -142,8 +146,8 @@ def generate_cv(data_diri, lowongan):
     doc.add_paragraph()
 
     # Posisi yang dilamar
-    doc.add_heading(f"Melamar sebagai: {lowongan['judul']}", level=1)
-    doc.add_paragraph(f"Perusahaan: {lowongan['perusahaan']} | Lokasi: {lowongan['lokasi']}")
+    doc.add_heading(f"Melamar sebagai: {get_field(lowongan, 'judul', 'Posisi')}", level=1)
+    doc.add_paragraph(f"Perusahaan: {get_field(lowongan, 'perusahaan', 'N/A')} | Lokasi: {get_field(lowongan, 'lokasi', 'N/A')}")
 
     # Profil Singkat
     doc.add_heading('Profil Singkat', level=2)
@@ -207,7 +211,8 @@ def generate_cover_letter(data_diri, lowongan):
         os.makedirs(FOLDER_CV_OUTPUT)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    nama_file_safe = "".join(c for c in lowongan['judul'] if c.isalnum() or c in (' ', '-', '_')).strip()
+    judul_lowongan = get_field(lowongan, 'judul', 'Lowongan')
+    nama_file_safe = "".join(c for c in judul_lowongan if c.isalnum() or c in (' ', '-', '_')).strip()
     nama_file_safe = nama_file_safe.replace(' ', '_')
 
     nama_depan = data_diri['nama_lengkap'].split()[0]
@@ -229,7 +234,7 @@ def generate_cover_letter(data_diri, lowongan):
     doc.add_paragraph(tanggal)
 
     # Alamat perusahaan
-    doc.add_paragraph(f"HRD Department\n{lowongan['perusahaan']}\n{lowongan['lokasi']}")
+    doc.add_paragraph(f"HRD Department\n{get_field(lowongan, 'perusahaan', 'Perusahaan')}\n{get_field(lowongan, 'lokasi', 'Lokasi')}")
 
     doc.add_paragraph()
 
@@ -237,13 +242,13 @@ def generate_cover_letter(data_diri, lowongan):
     doc.add_paragraph("Dengan hormat,", style='Normal')
 
     # Isi cover letter
-    isi = f"""Saya menulis surat ini untuk menyampaikan ketertarikan saya pada posisi {lowongan['judul']} di {lowongan['perusahaan']} sebagaimana diinformasikan melalui JobStreet.
+    isi = f"""Saya menulis surat ini untuk menyampaikan ketertarikan saya pada posisi {get_field(lowongan, 'judul', 'Posisi')} di {get_field(lowongan, 'perusahaan', 'Perusahaan')} sebagaimana diinformasikan melalui JobStreet.
 
 Sebagai lulusan {data_diri['pendidikan_nama']} jurusan {data_diri['pendidikan_jurusan']} dengan pengalaman {data_diri['pengalaman_jumlah']} tahun di bidang teknologi, saya yakin memiliki kualifikasi yang sesuai dengan kebutuhan perusahaan Bapak/Ibu.
 
 Selama karir saya, saya telah mengembangkan keahlian dalam {data_diri['keahlian_teknis']}, serta memiliki soft skills yang kuat dalam {data_diri['keahlian_soft_skill']}. Saya juga telah menyelesaikan berbagai sertifikasi profesional termasuk {data_diri.get('sertifikasi', 'berbagai pelatihan')}.
 
-Saya sangat antusias untuk dapat berkontribusi di {lowongan['perusahaan']} dan yakin bahwa pengalaman serta kemampuan saya dapat memberikan nilai tambah bagi perusahaan.
+Saya sangat antusias untuk dapat berkontribusi di {get_field(lowongan, 'perusahaan', 'Perusahaan')} dan yakin bahwa pengalaman serta kemampuan saya dapat memberikan nilai tambah bagi perusahaan.
 
 Bersama surat ini, saya lampirkan Curriculum Vitae untuk memberikan gambaran lebih detail mengenai kualifikasi saya. Saya sangat mengharapkan kesempatan untuk dapat diskusi lebih lanjut mengenai bagaimana saya dapat berkontribusi pada tim Bapak/Ibu.
 
@@ -295,7 +300,7 @@ def main():
         print("\n👋 Program dihentikan.")
         return
 
-    print(f"\n🎯 Anda memilih: {lowongan_dipilih['judul']} di {lowongan_dipilih['perusahaan']}")
+    print(f"\n🎯 Anda memilih: {get_field(lowongan_dipilih, 'judul', 'N/A')} di {get_field(lowongan_dipilih, 'perusahaan', 'N/A')}")
 
     # Konfirmasi
     konfirmasi = input("\n👉 Lanjutkan generate CV & Cover Letter? (y/n): ").lower()
@@ -322,7 +327,7 @@ def main():
     print(f"\n💡 Tips:")
     print(f"   • Review dokumen sebelum dikirim")
     print(f"   • Sesuaikan jika ada informasi spesifik dari perusahaan")
-    print(f"   • Lamar melalui link: {lowongan_dipilih['link']}")
+    print(f"   • Lamar melalui link: {get_field(lowongan_dipilih, 'link', '#')}")
     print("\n" + "="*80)
 
 if __name__ == "__main__":
