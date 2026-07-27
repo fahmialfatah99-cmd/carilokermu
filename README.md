@@ -30,7 +30,63 @@
 cd /path/to/cari-loker
 ```
 
-### 2. Install Dependencies
+### 2. Install Python (jika belum ada)
+
+#### **Windows:**
+1. Download installer dari [python.org](https://www.python.org/downloads/)
+2. Jalankan installer, pastikan centang "Add Python to PATH"
+3. Verifikasi instalasi:
+   ```cmd
+   python --version
+   pip --version
+   ```
+
+#### **Linux (Ubuntu/Debian):**
+```bash
+sudo apt update
+sudo apt install python3 python3-pip python3-venv
+python3 --version
+pip3 --version
+```
+
+#### **Linux (CentOS/RHEL/Fedora):**
+```bash
+sudo dnf install python3 python3-pip
+python3 --version
+pip3 --version
+```
+
+#### **macOS:**
+Menggunakan Homebrew (recommended):
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+brew install python@3.12
+python3 --version
+pip3 --version
+```
+
+Atau menggunakan pyenv:
+```bash
+brew install pyenv
+pyenv install 3.12.0
+pyenv global 3.12.0
+```
+
+### 3. Buat Virtual Environment (Recommended)
+
+#### **Windows:**
+```cmd
+python -m venv venv
+venv\Scripts\activate
+```
+
+#### **Linux/macOS:**
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+### 4. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
@@ -42,13 +98,53 @@ Atau install manual:
 pip install pandas playwright playwright-stealth selectolax openpyxl
 ```
 
-### 3. Install Browser Playwright
+### 5. Install Browser Playwright
 
 ```bash
 playwright install chromium
 ```
 
+**Catatan untuk Linux:** Jika muncul error dependency, install terlebih dahulu:
+```bash
+# Ubuntu/Debian
+sudo apt-get install libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2 libpango-1.0-0 libcairo2
+
+# CentOS/RHEL
+sudo yum install alsa-lib.x86_64 atk.x86_64 cups-libs.x86_64 gtk3.x86_64 libXcomposite.x86_64 libXdamage.x86_64 libXext.x86_64 libXfixes.x86_64 libXrandr.x86_64 libXtst.x86_64 pango.x86_64 xorg-x11-fonts-misc xorg-x11-fonts-Type1 xorg-x11-utils
+
+# Fedora
+sudo dnf install alsa-lib atk cups-libs gtk3 libXcomposite libXdamage libXext libXfixes libXrandr libXtst pango xorg-x11-fonts-misc xorg-x11-fonts-Type1
+```
+
+**Catatan untuk macOS:** Pastikan Xcode Command Line Tools terinstall:
+```bash
+xcode-select --install
+```
+
 ## 📖 Cara Penggunaan
+
+### 🎯 Contoh: Cari Lowongan Administrasi di Jakarta Selatan
+
+Untuk mencari lowongan kerja **Administrasi** di **Indonesia** (khususnya **Jakarta Selatan**) dari **Jobstreet**, gunakan perintah berikut:
+
+#### **Windows (Command Prompt):**
+```cmd
+python cariloker.py -k "Administrasi" -u "https://id.jobstreet.com/id/jobs/in-Jakarta-Selatan-Jakarta-Raya" -f csv
+```
+
+#### **Linux/macOS:**
+```bash
+python3 cariloker.py -k "Administrasi" -u "https://id.jobstreet.com/id/jobs/in-Jakarta-Selatan-Jakarta-Raya" -f csv
+```
+
+**Penjelasan:**
+- `-k "Administrasi"` : Kata kunci pencarian untuk posisi administrasi
+- `-u "https://id.jobstreet.com/id/jobs/in-Jakarta-Selatan-Jakarta-Raya"` : URL target Jobstreet untuk lokasi Jakarta Selatan
+- `-f csv` : Format output (bisa diganti `json` atau `excel`)
+
+Hasil akan disimpan dalam file CSV seperti: `hasil_loker_Administrasi_20240115_103000.csv`
+
+---
 
 ### Penggunaan Dasar (Command Line)
 
@@ -75,7 +171,7 @@ python cariloker.py -k "Software Engineer" -u https://jobstreet.co.id -f json --
 | `--timeout` | - | `60000` | Timeout navigasi (ms) |
 | `--output` | - | `auto` | Nama file output custom |
 
-### Contoh Penggunaan
+### Contoh Penggunaan Lainnya
 
 ```bash
 # Cari Data Analyst, export ke CSV
@@ -92,6 +188,12 @@ python cariloker.py -k "Designer" --output lowongan_designer.csv
 
 # Dengan timeout lebih lama
 python cariloker.py -k "Developer" --timeout 90000
+
+# Cari lowongan Akuntansi di Surabaya
+python cariloker.py -k "Akuntansi" -u "https://id.jobstreet.com/id/jobs/in-Surabaya-Jawa-Timur" -f excel
+
+# Cari lowongan IT di Bandung dengan format JSON
+python cariloker.py -k "IT" -u "https://id.jobstreet.com/id/jobs/in-Bandung-Jawa-Barat" -f json
 ```
 
 ### Penggunaan sebagai Module Python
