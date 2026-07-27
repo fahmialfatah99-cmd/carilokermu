@@ -72,7 +72,13 @@ class JobScraper:
             await self.page.goto(url, wait_until="networkidle", timeout=60000)
             
             # Tunggu sebentar agar konten dimuat penuh
+            await self.page.wait_for_timeout(3000)
+            
+            # Scroll ke bawah untuk trigger lazy loading
+            await self.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
             await self.page.wait_for_timeout(2000)
+            await self.page.evaluate("window.scrollTo(0, 0)")
+            await self.page.wait_for_timeout(1000)
 
             # Cek apakah ada pesan "tidak ada hasil" atau sejenisnya
             content = await self.page.content()
@@ -84,41 +90,45 @@ class JobScraper:
 
             # Selector khusus JobStreet Indonesia (updated 2024)
             # Mencari job card dengan selector yang lebih spesifik
-            job_cards = soup.select('article[data-automation-id="jobCard"], div[data-automation-id="jobCard"]')
+            job_cards = soup.select('article[data-automation-id="jobCard"]')
             
             if not job_cards:
-                # Fallback: coba ambil parent dari jobCardTitle
-                title_elems = soup.select('[data-automation="jobCardTitle"]')
-                if title_elems:
-                    # Ambil parent terdekat yang merupakan container
-                    job_cards = []
-                    for elem in title_elems:
-                        parent = elem.find_parent(['article', 'div', 'li'])
-                        if parent:
-                            job_cards.append(parent)
-                else:
-                    job_cards = []
+                # Fallback: coba selector alternatif
+                job_cards = soup.select('div[data-automation-id="jobCard"]')
+                
+            if not job_cards:
+                # Fallback terakhir: cari berdasarkan struktur umum
+                job_cards = soup.select('[data-automation="jobCardTitle"]')
+                # Ambil parent container jika yang ketemu adalah title
+                if job_cards:
+                    new_cards = []
+                    for card in job_cards:
+                        parent = card.find_parent(['article', 'div'])
+                        if parent and parent not in new_cards:
+                            new_cards.append(parent)
+                    job_cards = new_cards
                     
-                if not job_cards:
-                    job_cards = soup.select('div[class*="JobCard"], article[class*="JobCard"], li[class*="job"]')
-                    
-                if DEBUG and title_elems:
-                    logger.warning(f"Selector utama tidak menemukan hasil, mencoba fallback. Ditemukan {len(job_cards)} elemen potensial.")
-
             if DEBUG:
                 logger.info(f"Total job cards ditemukan: {len(job_cards)}")
+                if not job_cards:
+                    logger.warning("⚠️ Tidak ada job card ditemukan! Kemungkinan:")
+                    logger.warning("   - Halaman belum fully loaded")
+                    logger.warning("   - Terdeteksi sebagai bot")
+                    logger.warning("   - Struktur HTML berubah")
 
             for card in job_cards:
                 try:
                     # Selector spesifik JobStreet untuk setiap field (prioritas data-automation)
-                    title_elem = card.select_one('[data-automation="jobCardTitle"], a[data-automation="jobCardTitle"], h1, h2, h3, a[class*="title"]')
-                    company_elem = card.select_one('[data-automation="jobCardCompany"], span[data-automation="jobCardCompany"], div[class*="company"], span[class*="company"]')
-                    location_elem = card.select_one('[data-automation="jobCardLocation"], span[data-automation="jobCardLocation"], div[class*="location"], span[class*="place"]')
-                    salary_elem = card.select_one('[data-automation="jobCardSalary"], span[data-automation="jobCardSalary"], div[class*="salary"], span[class*="remuneration"]')
+                    title_elem = card.select_one('[data-automation="jobCardTitle"]')
+                    company_elem = card.select_one('[data-automation="jobCardCompany"]')
+                    location_elem = card.select_one('[data-automation="jobCardLocation"]')
+                    salary_elem = card.select_one('[data-automation="jobCardSalary"]')
                     link_elem = card.select_one('a[data-automation="jobCardTitle"], a[href]')
                     
-                    if DEBUG:
-                        logger.debug(f"  - Title elem: {title_elem is not None}, Company: {company_elem is not None}, Salary: {salary_elem is not None}")
+                    if DEBUG and title_elem:
+                        logger.debug(f"  ✓ Title: {title_elem.get_text(strip=True)[:50]}")
+                        logger.debug(f"  ✓ Company: {company_elem.get_text(strip=True) if company_elem else 'TIDAK ADA'}")
+                        logger.debug(f"  ✓ Salary: {salary_elem.get_text(strip=True) if salary_elem else 'TIDAK ADA'}")
                     
                     # Skip jika tidak ada title atau link
                     if not title_elem and not link_elem:
