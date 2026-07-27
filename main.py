@@ -13,8 +13,8 @@ def scrape_jobs(position, location):
         )
         page = context.new_page()
         
-        # Langsung buka halaman pencarian
-        url = f"https://www.linkedin.com/jobs/search/?keywords={position.replace(' ', '%20')}&location={location.replace(' ', '%20')}"
+        # Langsung buka halaman pencarian JobStreet
+        url = f"https://www.jobstreet.co.id/id/job-search/{position.replace(' ', '-')}-jobs-in-{location.replace(' ', '-')}/"
         print(f"Membuka: {url}")
         page.goto(url, timeout=60000)
         
@@ -30,28 +30,27 @@ def scrape_jobs(position, location):
             time.sleep(1)
         
         # Ambil data job dari list
-        job_listings = page.query_selector_all('li.job-search-card')
+        job_listings = page.query_selector_all('[data-automation="jobCard"]')
         
         if not job_listings:
             # Coba selector alternatif
-            job_listings = page.query_selector_all('ul.jobs-search-results__list li')
+            job_listings = page.query_selector_all('article a[href*="/job/"]')
         
         print(f"Ditemukan {len(job_listings)} lowongan")
         
         for idx, job in enumerate(job_listings[:20]):  # Ambil max 20
             try:
-                title_elem = job.query_selector('h3 a')
-                company_elem = job.query_selector('h4 a')
-                location_elem = job.query_selector('span.job-search-card__location')
-                link_elem = job.query_selector('a.job-card-list__title')
+                title_elem = job.query_selector('[data-automation="jobTitle"]')
+                company_elem = job.query_selector('[data-automation="jobCompany"]')
+                location_elem = job.query_selector('[data-automation="jobLocation"]')
                 
                 title = title_elem.inner_text().strip() if title_elem else "N/A"
                 company = company_elem.inner_text().strip() if company_elem else "N/A"
                 loc = location_elem.inner_text().strip() if location_elem else "N/A"
-                link = link_elem.get_attribute('href') if link_elem else "N/A"
+                link = job.get_attribute('href') if job else "N/A"
                 
                 if link and link.startswith('/'):
-                    link = f"https://www.linkedin.com{link}"
+                    link = f"https://www.jobstreet.co.id{link}"
                 
                 jobs.append({
                     'No': idx + 1,
@@ -82,7 +81,7 @@ def scrape_jobs(position, location):
 
 if __name__ == "__main__":
     print("=" * 50)
-    print("   LINKEDIN JOB SCRAPER (Tanpa Login)")
+    print("   JOBSTREET JOB SCRAPER (Tanpa Login)")
     print("=" * 50)
     
     position = input("\nMasukkan posisi pekerjaan: ")
