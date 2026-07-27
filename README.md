@@ -44,8 +44,12 @@ pip install -r requirements.txt
 playwright install chromium
 playwright install-deps chromium
 
-# 6. Edit main.py sesuai kebutuhan
-nano main.py
+# 6. Edit konfigurasi (pilih salah satu):
+#    - Pakai nano: nano main.py
+#    - Pakai VS Code: code main.py
+#    - Pakai gedit (GUI): gedit main.py &
+#    - Pakai mousepad: mousepad main.py &
+#    Atau buka file main.py dengan text editor favorit Anda
 
 # 7. Jalankan scraper
 python3 main.py
@@ -131,7 +135,11 @@ pip install -r requirements.txt
 # 6. Install browser Chromium
 playwright install chromium
 
-# 7. Edit main.py sesuai kebutuhan (gunakan Notepad++ atau VS Code)
+# 7. Edit konfigurasi (pilih salah satu):
+#    - Pakai Notepad: notepad main.py
+#    - Pakai Notepad++: notepad++.exe main.py
+#    - Pakai VS Code: code main.py
+#    Atau buka file main.py dengan text editor favorit Anda
 
 # 8. Jalankan scraper
 python main.py
@@ -232,8 +240,11 @@ pip install -r requirements.txt
 # 6. Install browser Chromium
 playwright install chromium
 
-# 7. Edit main.py sesuai kebutuhan
-nano main.py
+# 7. Edit konfigurasi (pilih salah satu):
+#    - Pakai nano: nano main.py
+#    - Pakai VS Code: code main.py
+#    - Pakai TextEdit (GUI): open -a TextEdit main.py
+#    Atau buka file main.py dengan text editor favorit Anda
 
 # 8. Jalankan scraper
 python3 main.py
@@ -307,8 +318,31 @@ python3 main.py
 
 ### Penggunaan Dasar
 
-1. Edit file `main.py` dan sesuaikan konfigurasi:
+1. Edit file `main.py` dan sesuaikan konfigurasi dengan text editor favorit Anda:
 
+**Linux:**
+```bash
+nano main.py          # Terminal-based
+gedit main.py &       # GUI (GNOME)
+kate main.py &        # GUI (KDE)
+code main.py          # VS Code
+```
+
+**Windows:**
+```cmd
+notepad main.py       # Notepad bawaan
+code main.py          # VS Code
+notepad++.exe main.py # Notepad++
+```
+
+**macOS:**
+```bash
+nano main.py                    # Terminal-based
+open -a TextEdit main.py        # TextEdit GUI
+code main.py                    # VS Code
+```
+
+2. Ubah konfigurasi di dalam file:
 ```python
 TARGET_SITE = "https://contoh-situs-loker.com"  # Ganti dengan URL target
 KEYWORD = "Data Analyst"                        # Kata kunci pencarian
@@ -316,7 +350,7 @@ MAX_PAGES = 3                                   # Jumlah halaman maksimal
 OUTPUT_FILE = "hasil_loker.csv"                 # Nama file output
 ```
 
-2. Jalankan script:
+3. Simpan file dan jalankan script:
 
 **Linux/macOS:**
 ```bash
