@@ -4,7 +4,6 @@ import time
 import random
 import logging
 import csv
-import json
 from datetime import datetime
 from urllib.parse import urljoin
 from pathlib import Path
@@ -61,30 +60,6 @@ def type_slowly(page, selector, text, delay=0.1):
         element.type(char)
         time.sleep(delay + random.uniform(0, 0.05))
 
-def save_cookies(context, filepath="carilokermu/jobstreet_cookies.json"):
-    """Simpan cookies ke file"""
-    try:
-        cookies = context.cookies()
-        with open(filepath, 'w') as f:
-            json.dump(cookies, f)
-        logger.info(f"✅ Cookies disimpan ke {filepath}")
-        return True
-    except Exception as e:
-        logger.error(f"Gagal menyimpan cookies: {e}")
-        return False
-
-def load_cookies(filepath="carilokermu/jobstreet_cookies.json"):
-    """Load cookies dari file"""
-    try:
-        if os.path.exists(filepath):
-            with open(filepath, 'r') as f:
-                cookies = json.load(f)
-            logger.info(f"📋 Cookies dimuat dari {filepath}")
-            return cookies
-    except Exception as e:
-        logger.error(f"Gagal memuat cookies: {e}")
-    return None
-
 def main():
     print("=" * 60)
     print("🔍 PENCARI LOWONGAN KERJA OTOMATIS (JOBSTREET)")
@@ -129,9 +104,6 @@ def main():
             logger.info("Pastikan Chromium terinstall: playwright install chromium")
             return
 
-        # Pastikan folder carilokermu ada
-        os.makedirs("carilokermu", exist_ok=True)
-        
         context = browser.new_context(
             viewport={'width': 1280, 'height': 720},
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"

@@ -1,26 +1,24 @@
-# 🔍 CariLokerMu - Job Portal Scraper
+# 🔍 CariLokerMu - Pencari Lowongan Kerja Otomatis
 
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-Aplikasi otomatis untuk mencari lowongan kerja dari **Jobstreet** dengan fitur scraping cerdas dan export data ke CSV.
+Aplikasi sederhana untuk mencari lowongan kerja dari **Jobstreet** tanpa login dan export hasil ke CSV.
 
 ---
 
-## ✨ Fitur Utama
+## ✨ Fitur
 
-| Fitur | Deskripsi | Status |
-|-------|-----------|--------|
-| 🔍 **Smart Scraping** | Mencari lowongan berdasarkan keyword & lokasi | ✅ Siap Pakai |
-| 📊 **Export Data** | Simpan hasil pencarian ke CSV/Excel | ✅ Siap Pakai |
-| 🌐 **Auto-Buka Browser** | Browser terbuka otomatis untuk proses scraping | ✅ Siap Pakai |
-| ⌨️ **Ketik Otomatis** | Input field diisi otomatis seperti manusia mengetik | ✅ Siap Pakai |
+- 🔍 **Cari Lowongan** - Berdasarkan posisi dan lokasi
+- 📊 **Export CSV** - Hasil disimpan otomatis ke file CSV
+- 🌐 **Browser Otomatis** - Proses scraping terlihat di browser
+- ⚡ **Tanpa Login** - Langsung pakai, tidak perlu akun
+- 🤖 **Anti-Deteksi** - Stealth mode untuk menghindari blokir
 
 ---
 
 ## 📋 Prasyarat
 
-Pastikan Anda telah menginstall:
 - Python 3.8 atau lebih baru
 - pip (Python package manager)
 
@@ -28,57 +26,79 @@ Pastikan Anda telah menginstall:
 
 ## 🛠️ Instalasi
 
-### 1. Clone Repository
+### 1. Clone atau Download Repository
+
 ```bash
 git clone https://github.com/username/carilokermu.git
 cd carilokermu
 ```
 
-### 2. Install Dependencies Python
+### 2. Buat Virtual Environment (Disarankan)
+
+Virtual environment membuat dependencies terisolasi dan tidak mengganggu sistem utama.
+
+#### **Windows (CMD/PowerShell)**
+```bash
+python -m venv venv
+venv\Scripts\activate
+```
+
+#### **macOS / Linux**
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+Setelah aktivasi, akan muncul `(venv)` di awal terminal.
+
+### 3. Install Dependencies
+
 ```bash
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 3. Install Browser Engine Playwright (WAJIB!)
+### 4. Install Browser Engine Playwright (WAJIB!)
 
-Ini adalah langkah yang **sering terlewatkan** dan menyebabkan error `Playwright tidak terinstall`.
-Playwright membutuhkan browser engine khusus yang harus diunduh terpisah.
+Playwright butuh browser engine khusus yang harus diunduh terpisah:
 
 ```bash
-# Unduh dan install Chromium engine untuk Playwright
 playwright install chromium
+```
 
-# (Opsional) Install dependencies sistem Linux jika diperlukan
+**Untuk Linux (Ubuntu/Debian)**, mungkin perlu install dependencies tambahan:
+```bash
 playwright install-deps chromium
 ```
 
-> ⚠️ **PENTING**: 
-> - Jangan lewatkan langkah ini! Error `Playwright tidak terinstall` muncul karena browser engine belum diunduh.
-> - Perintah ini hanya perlu dilakukan **sekali saja** setelah instalasi awal.
-> - Ukuran download sekitar 100-150 MB.
+> ⚠️ **PENTING**: Langkah ini hanya dilakukan **sekali saja** setelah instalasi pertama.
 
 ---
 
 ## 🚀 Cara Penggunaan
 
-### Cari Lowongan Kerja
+### Jalankan Program
 
 ```bash
-python3 main.py
+python main.py
 ```
 
-**Program akan memandu Anda melalui:**
+**atau jika di Windows:**
+```bash
+py main.py
+```
 
-1. **Input posisi/kata kunci** (contoh: `admin`, `data analyst`)
-2. **Input lokasi/kota** (contoh: `Jakarta`, `Surabaya`)
-3. **Input jumlah halaman** yang akan di-scrape (default: 3)
-4. **Browser terbuka otomatis** untuk menampilkan proses scraping
-5. **Input field diisi otomatis** seperti manusia mengetik
-6. **Menampilkan daftar lowongan** yang ditemukan
-7. **Data tersimpan ke CSV** untuk dibuka di Excel/Google Sheets
+### Alur Program:
 
-**Contoh Sesi:**
+1. **Input posisi** (contoh: `Admin`, `Data Analyst`)
+2. **Input lokasi** (contoh: `Jakarta`, `Surabaya`)
+3. **Input jumlah halaman** (default: 3)
+4. **Browser terbuka** dan proses scraping berjalan otomatis
+5. **Hasil ditampilkan** di terminal
+6. **Data tersimpan** ke file CSV
+
+### Contoh Output:
+
 ```
 ============================================================
 🔍 PENCARI LOWONGAN KERJA OTOMATIS (JOBSTREET)
@@ -107,100 +127,67 @@ python3 main.py
 ============================================================
 ```
 
-**Fitur Unggulan:**
-- ✅ **Auto-buka browser**: Browser terbuka otomatis untuk melihat proses
-- ✅ **Ketik otomatis**: Input field diisi karakter per karakter seperti manusia
-- ✅ **Tanpa login**: Langsung bisa mencari lowongan tanpa perlu login
-
 ---
 
-## 📂 Struktur Output
+## 📂 Hasil Output
 
-Setelah menjalankan program, Anda akan memiliki file CSV seperti ini:
-
+File CSV tersimpan di folder yang sama dengan nama format:
 ```
-carilokermu/
-├── loker_admin_jakarta_20260727_160440.csv    # Hasil scraping lowongan
-└── carilokermu/                                # Folder output
+loker_{posisi}_{lokasi}_{tanggal_waktu}.csv
 ```
 
-File CSV berisi kolom:
+**Kolom CSV:**
 - No: Nomor urut
 - Posisi: Judul lowongan
 - Perusahaan: Nama perusahaan
 - Lokasi: Lokasi pekerjaan
 - Link: Link ke lowongan
-- Halaman: Halaman tempat lowongan ditemukan
+- Halaman: Halaman tempat ditemukan
 
 ---
 
 ## 🔧 Troubleshooting
 
-### Masalah Instalasi
-
-| Sistem Operasi | Masalah Umum | Solusi |
-|----------------|--------------|--------|
-| **Linux (Ubuntu/Debian)** | `Permission denied` saat install | Gunakan: `pip3 install --user -r requirements.txt` |
-| **macOS** | Certificate verify failed | Jalankan: `/Applications/Python\ 3.x/Install\ Certificates.command` |
-| **Windows** | `pip` tidak dikenali | Tambahkan Python ke PATH atau gunakan `py -m pip` |
-| **Semua** | Module `playwright` tidak ditemukan | Jalankan: `pip install playwright playwright-stealth` |
-
-### Masalah Saat Running
+### Error Umum & Solusi
 
 | Masalah | Solusi |
 |---------|--------|
-| Browser tidak terbuka | Pastikan Chromium terinstall: `playwright install chromium` |
-| CSV kosong/tidak ada data | Coba ubah keyword, tambah jumlah halaman, atau cek koneksi internet |
-| Error `Connection Reset` | Tunggu 5-10 menit lalu jalankan lagi (rate limiting) |
-| Script terlalu lambat | Normal, script memberi delay untuk hindari blokir |
+| `ModuleNotFoundError: No module named 'playwright'` | Jalankan: `pip install playwright playwright-stealth` |
+| `Playwright tidak terinstall` | Jalankan: `playwright install chromium` |
+| Browser tidak terbuka | Pastikan langkah install Chromium sudah dilakukan |
+| CSV kosong | Coba keyword lain, tambah halaman, atau cek koneksi internet |
+| Error connection/reset | Tunggu beberapa menit (rate limiting dari website) |
 
-### Tips Khusus Linux Users
+### Panduan Per OS
 
-```bash
-# Jika Chromium tidak mau jalan sebagai root
-export CHROME_ALLOW_ROOT=1
+#### **Windows**
+- Jika `pip` tidak dikenali, gunakan: `py -m pip install -r requirements.txt`
+- Pastikan Python ditambahkan ke PATH
+- Gunakan PowerShell atau CMD sebagai administrator jika ada error permission
 
-# Jika ada masalah permission pada folder output
-chmod -R 755 /path/to/carilokermu/
+#### **macOS**
+- Jika ada error certificate, jalankan: `/Applications/Python\ 3.x/Install\ Certificates.command`
+- Gunakan `python3` bukan `python`
 
-# Cek apakah Chromium terinstall dengan benar
-chromium --version
-
-# Untuk Snap users (Ubuntu 22.04+)
-sudo snap connect chromium:home
-```
+#### **Linux (Ubuntu/Debian)**
+- Install dependencies sistem: `sudo apt-get install -y libgbm1 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libpango-1.0-0 libcairo2 libglib2.0-0 libdrm2 libdbus-1-3 libatspi2.0-0`
+- Atau gunakan: `playwright install-deps chromium`
+- Jika running sebagai root, tambahkan: `export CHROME_ALLOW_ROOT=1`
 
 ---
 
-## 🚧 Batasan & Catatan
+## 🚧 Catatan Penting
 
-1. **Tanpa Login:** Program ini tidak memerlukan login ke Jobstreet untuk mencari lowongan
-2. **Rate Limit:** Jangan jalankan terlalu cepat untuk menghindari blokir IP
-3. **Captcha:** Beberapa website mungkin menampilkan captcha yang harus diselesaikan manual
-4. **Update UI:** Jika Jobstreet mengubah tampilan form, script perlu diupdate
+1. **Tanpa Login** - Program tidak memerlukan login ke Jobstreet
+2. **Rate Limit** - Jangan jalankan terlalu cepat untuk menghindari blokir IP
+3. **Captcha** - Website mungkin menampilkan captcha yang harus diselesaikan manual
+4. **UI Changes** - Jika tampilan Jobstreet berubah, script mungkin perlu update
 
 ---
 
 ## 📄 License
 
-MIT License - lihat file [LICENSE](LICENSE) untuk detail
-
----
-
-## 🤝 Kontribusi
-
-Kontribusi sangat diterima! Silakan buat issue atau pull request untuk:
-- Menambahkan support job portal lain
-- Memperbaiki bug
-- Menambah fitur baru
-
----
-
-## 📞 Support
-
-Jika mengalami kendala, buka issue di GitHub atau hubungi:
-- Email: support@carilokermu.com
-- Telegram: @carilokermu_support
+MIT License - Silakan digunakan dan dimodifikasi sesuai kebutuhan.
 
 ---
 
