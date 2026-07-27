@@ -37,14 +37,82 @@ cd carilokermu
 ```
 
 ### 2. Install Dependencies
-```bash
-pip install -r requirements.txt
-```
 
-### 3. Verifikasi Instalasi
+#### **Linux (Ubuntu/Debian/Mint)**
 ```bash
+# Update package list
+sudo apt update
+
+# Install Python pip jika belum ada
+sudo apt install python3-pip -y
+
+# Install Chrome browser (jika belum ada)
+wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+sudo dpkg -i google-chrome-stable_current_amd64.deb
+sudo apt-get install -f -y  # Fix dependencies jika ada error
+
+# Install dependencies Python
+pip3 install -r requirements.txt
+
+# Verifikasi instalasi
 python3 main.py --help
 ```
+
+#### **Linux (Fedora/RHEL/CentOS)**
+```bash
+# Install Python pip
+sudo dnf install python3-pip -y
+
+# Install Chrome browser
+sudo dnf install https://dl.google.com/linux/chrome/rpm/stable/x86_64/google-chrome-stable-1*.rpm -y
+
+# Install dependencies Python
+pip3 install -r requirements.txt
+
+# Verifikasi instalasi
+python3 main.py --help
+```
+
+#### **macOS**
+```bash
+# Install Homebrew jika belum ada
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Install Python dan Chrome
+brew install python
+brew install --cask google-chrome
+
+# Install dependencies Python
+pip3 install -r requirements.txt
+
+# Verifikasi instalasi
+python3 main.py --help
+```
+
+#### **Windows**
+```powershell
+# Install Python dari Microsoft Store atau python.org
+# Pastikan centang "Add Python to PATH" saat instalasi
+
+# Install Chrome browser
+# Download dari: https://www.google.com/chrome/
+
+# Install dependencies Python
+pip install -r requirements.txt
+
+# Verifikasi instalasi
+python main.py --help
+```
+
+### 3. Troubleshooting Instalasi
+
+| Sistem Operasi | Masalah Umum | Solusi |
+|----------------|--------------|--------|
+| **Linux** | `Permission denied` saat install | Gunakan `sudo` atau `--user` flag: `pip3 install --user -r requirements.txt` |
+| **Linux** | Chrome tidak ditemukan | Pastikan path Chrome: `/usr/bin/google-chrome` |
+| **macOS** | Certificate verify failed | Jalankan: `/Applications/Python\ 3.x/Install\ Certificates.command` |
+| **Windows** | `pip` tidak dikenali | Tambahkan Python ke PATH atau gunakan `py -m pip` |
+| **Semua** | Module `docx` tidak ditemukan | Jalankan: `pip install python-docx reportlab` |
 
 ---
 
@@ -175,13 +243,44 @@ Edit file `config/search_config.json` untuk set lokasi default:
 
 ## 🔧 Troubleshooting
 
+### Masalah Instalasi
+
+| Sistem Operasi | Masalah Umum | Solusi |
+|----------------|--------------|--------|
+| **Linux (Ubuntu/Debian)** | `Permission denied` saat install | Gunakan: `pip3 install --user -r requirements.txt` |
+| **Linux** | Chrome tidak ditemukan | Pastikan path: `/usr/bin/google-chrome` atau install ulang |
+| **Linux** | Error `dpkg` saat install Chrome | Jalankan: `sudo apt-get install -f -y` |
+| **macOS** | Certificate verify failed | Jalankan: `/Applications/Python\ 3.x/Install\ Certificates.command` |
+| **Windows** | `pip` tidak dikenali | Tambahkan Python ke PATH atau gunakan `py -m pip` |
+| **Semua** | Module `docx` tidak ditemukan | Jalankan: `pip install python-docx reportlab` |
+
+### Masalah Saat Running
+
 | Masalah | Solusi |
 |---------|--------|
-| `ModuleNotFoundError: No module named 'docx'` | Jalankan: `pip install python-docx reportlab` |
-| Browser tidak terbuka saat auto apply | Pastikan Chrome terinstall dan path-nya benar |
-| Login Jobstreet gagal | Clear cookie browser atau gunakan mode incognito |
-| CSV kosong/tidak ada data | Coba ubah keyword atau tambah jumlah loker |
-| Auto apply stuck di captcha | Selesaikan captcha manual, script akan lanjut otomatis |
+| Browser tidak terbuka saat auto apply | Pastikan Chrome terinstall dan tertutup sebelum menjalankan script |
+| Login Jobstreet gagal | Clear cookie browser atau gunakan mode incognito manual |
+| CSV kosong/tidak ada data | Coba ubah keyword, tambah jumlah loker, atau cek koneksi internet |
+| Auto apply stuck di captcha | Selesaikan captcha manual, script akan lanjut otomatis setelah 30 detik |
+| CV tidak tergenerate | Cek folder `output_cv/` dan pastikan `config/user_profile.json` sudah diisi |
+| Error `Connection Reset` | Tunggu 5-10 menit lalu jalankan lagi (rate limiting) |
+| Script terlalu lambat | Normal, script memberi delay 3-5 detik antar lamaran untuk hindari blokir |
+
+### Tips untuk Linux Users
+
+```bash
+# Jika Chrome tidak mau jalan sebagai root
+export CHROME_ALLOW_ROOT=1
+
+# Jika ada masalah permission pada folder output
+chmod -R 755 /path/to/carilokermu/
+
+# Cek apakah Chrome terinstall dengan benar
+google-chrome --version
+
+# Install chromedriver jika diperlukan
+sudo apt install chromium-chromedriver -y
+```
 
 ---
 
