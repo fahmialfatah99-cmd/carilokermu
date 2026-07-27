@@ -18,11 +18,12 @@ import time
 import random
 import logging
 from datetime import datetime
-from typing import List, Dict, Optional
-from dataclasses import dataclass, asdict
+from typing import List, Dict, Optional, Set
+from dataclasses import dataclass, asdict, field
 import threading
 from queue import Queue
 import hashlib
+from functools import lru_cache
 
 # Konfigurasi Logging
 logging.basicConfig(
@@ -42,9 +43,9 @@ class ScraperConfig:
     max_pages: int = 10
     max_jobs_per_page: int = 50
     timeout_page_load: int = 30
-    timeout_element: int = 15
-    scroll_delay: float = 2.0
-    click_delay: float = 1.5
+    timeout_element: int = 10  # Reduced from 15 for faster response
+    scroll_delay: float = 1.0  # Reduced from 2.0
+    click_delay: float = 0.8  # Reduced from 1.5
     headless: bool = True
     disable_images: bool = True
     use_proxy: bool = False
@@ -53,6 +54,16 @@ class ScraperConfig:
     max_workers: int = 3  # Untuk multi-threading
     retry_attempts: int = 3
     save_format: str = 'csv'  # csv, json, atau both
+    batch_size: int = 100  # Batch processing size
+    
+    def __post_init__(self):
+        """Validate configuration after initialization"""
+        if self.timeout_element < 5:
+            self.timeout_element = 5
+        if self.scroll_delay < 0.5:
+            self.scroll_delay = 0.5
+        if self.click_delay < 0.5:
+            self.click_delay = 0.5
     
 # Daftar kota populer untuk referensi
 CITIES = [
@@ -208,8 +219,10 @@ class JobStreetScraper:
         self.config = config or ScraperConfig()
         self.driver = None
         self.jobs_found: List[JobData] = []
+        self.seen_links: Set[str] = set()  # For O(1) duplicate detection
         self.ua = UserAgent() if self.config.rotate_user_agent else None
         self._lock = threading.Lock()
+        self._element_cache = {}  # Cache for frequently used elements
         
     def _get_chrome_options(self) -> Options:
         """Konfigurasi Chrome/Chromium options untuk performa maksimal"""
@@ -235,9 +248,26 @@ class JobStreetScraper:
         options.add_argument('--disable-accelerated-2d-canvas')
         options.add_argument('--disable-software-rasterizer')
         
+        # Performance optimizations
+        options.add_argument('--disable-background-networking')
+        options.add_argument('--disable-default-apps')
+        options.add_argument('--disable-hang-monitor')
+        options.add_argument('--disable-prompt-on-repost')
+        options.add_argument('--disable-sync')
+        options.add_argument('--metrics-recording-only')
+        options.add_argument('--no-first-run')
+        options.add_argument('--safebrowsing-disable-auto-update')
+        
         # Disable images untuk kecepatan
         if self.config.disable_images:
-            prefs = {"profile.managed_default_content_settings.images": 2}
+            prefs = {
+                "profile.managed_default_content_settings.images": 2,
+                "profile.default_content_setting_values.notifications": 2,
+                "profile.default_content_setting_values.cookies": 2,
+                "profile.default_content_settings.popups": 2,
+                "optimization_guide.enabled": True,
+                "optimization_guide.hints_configuration.enabled": True,
+            }
             options.add_experimental_option("prefs", prefs)
         
         # Set user agent
@@ -251,8 +281,8 @@ class JobStreetScraper:
             proxy = random.choice(self.config.proxy_list)
             options.add_argument(f'--proxy-server={proxy}')
         
-        # Window size
-        options.add_argument('--window-size=1920,1080')
+        # Window size - smaller for better performance
+        options.add_argument('--window-size=1366,768')
         
         # Disable notifications
         options.add_argument('--disable-notifications')
@@ -295,7 +325,7 @@ class JobStreetScraper:
         time.sleep(delay)
     
     def _scroll_page(self, driver):
-        """Scroll halaman untuk trigger lazy loading"""
+        """Scroll halaman untuk trigger lazy loading - optimized"""
         scroll_pause_time = self.config.scroll_delay
         
         # Get scroll height
@@ -304,98 +334,92 @@ class JobStreetScraper:
         # Scroll down to bottom
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         
-        # Wait for new content to load
+        # Wait for new content to load (reduced wait time)
         time.sleep(scroll_pause_time)
         
-        # Scroll back up a bit
+        # Scroll back up a bit (reduced wait)
         driver.execute_script("window.scrollTo(0, document.body.scrollHeight * 0.3);")
-        time.sleep(1)
+        time.sleep(0.3)
     
     def _extract_job_from_card(self, card_element, page_num: int) -> Optional[JobData]:
-        """Ekstrak data dari satu kartu lowongan"""
+        """Ekstrak data dari satu kartu lowongan - optimized with batch operations"""
         try:
-            # Extract title and link
-            try:
-                title_el = card_element.find_element(By.CSS_SELECTOR, self.SELECTORS['job_title'])
-                title = title_el.text.strip()
-                link = title_el.get_attribute('href') or ''
-            except NoSuchElementException:
+            # Use execute_script for faster bulk extraction
+            job_data = self.driver.execute_script("""
+                function extractJobData(card) {
+                    try {
+                        const data = {};
+                        
+                        // Title and link
+                        const titleEl = card.querySelector('[data-automation="jobCardTitle"]');
+                        if (titleEl) {
+                            data.title = titleEl.textContent.trim();
+                            data.link = titleEl.href || '';
+                        } else {
+                            return null;
+                        }
+                        
+                        // Company
+                        const companyEl = card.querySelector('[data-automation="jobCardCompany"]');
+                        data.company = companyEl ? companyEl.textContent.trim() : 'Perusahaan tidak disebutkan';
+                        
+                        // Location
+                        const locEl = card.querySelector('[data-automation="jobCardLocation"]');
+                        data.location = locEl ? locEl.textContent.trim() : 'Tidak ditentukan';
+                        
+                        // Salary
+                        const salaryEl = card.querySelector('[data-automation="jobCardSalary"]');
+                        data.salary = salaryEl ? salaryEl.textContent.trim() : 'Informasi tidak tersedia';
+                        
+                        // Job type
+                        const jobTypeEl = card.querySelector('[data-automation="jobCardJobType"]');
+                        data.jobType = jobTypeEl ? jobTypeEl.textContent.trim() : 'Tidak disebutkan';
+                        
+                        // Posted date
+                        const dateEl = card.querySelector('[data-automation="jobCardPostedDate"]');
+                        data.postedDate = dateEl ? dateEl.textContent.trim() : 'Tidak diketahui';
+                        
+                        // Description
+                        const descEl = card.querySelector('[data-automation="jobCardDescription"]');
+                        let description = descEl ? descEl.textContent.trim() : '-';
+                        if (description.length > 200) {
+                            description = description.substring(0, 200) + '...';
+                        }
+                        data.description = description;
+                        
+                        // Experience
+                        const expEl = card.querySelector('[data-automation="jobCardExperience"]');
+                        data.experience = expEl ? expEl.textContent.trim() : 'Tidak ditentukan';
+                        
+                        // Education
+                        const eduEl = card.querySelector('[data-automation="jobCardEducation"]');
+                        data.education = eduEl ? eduEl.textContent.trim() : 'Tidak ditentukan';
+                        
+                        return data;
+                    } catch (e) {
+                        return null;
+                    }
+                }
+                return extractJobData(arguments[0]);
+            """, card_element)
+            
+            if not job_data or not job_data.get('title'):
                 logger.warning("   ⚠️ Tidak menemukan judul lowongan")
                 return None
-            
-            # Extract company
-            try:
-                company_el = card_element.find_element(By.CSS_SELECTOR, self.SELECTORS['job_company'])
-                company = company_el.text.strip()
-            except NoSuchElementException:
-                company = "Perusahaan tidak disebutkan"
-            
-            # Extract location
-            try:
-                loc_el = card_element.find_element(By.CSS_SELECTOR, self.SELECTORS['job_location'])
-                location = loc_el.text.strip()
-            except NoSuchElementException:
-                location = "Tidak ditentukan"
-            
-            # Extract salary
-            try:
-                salary_el = card_element.find_element(By.CSS_SELECTOR, self.SELECTORS['job_salary'])
-                salary = salary_el.text.strip()
-            except NoSuchElementException:
-                salary = "Informasi tidak tersedia"
-            
-            # Extract job type
-            try:
-                job_type_el = card_element.find_element(By.CSS_SELECTOR, self.SELECTORS['job_type'])
-                job_type = job_type_el.text.strip()
-            except NoSuchElementException:
-                job_type = "Tidak disebutkan"
-            
-            # Extract posted date
-            try:
-                date_el = card_element.find_element(By.CSS_SELECTOR, self.SELECTORS['job_date'])
-                posted_date = date_el.text.strip()
-            except NoSuchElementException:
-                posted_date = "Tidak diketahui"
-            
-            # Extract description
-            try:
-                desc_el = card_element.find_element(By.CSS_SELECTOR, self.SELECTORS['job_description'])
-                description = desc_el.text.strip()
-            except NoSuchElementException:
-                description = "-"
-            
-            # Truncate description if too long
-            if len(description) > 200:
-                description = description[:200] + "..."
-            
-            # Extract experience
-            try:
-                exp_el = card_element.find_element(By.CSS_SELECTOR, self.SELECTORS['job_experience'])
-                experience = exp_el.text.strip()
-            except NoSuchElementException:
-                experience = "Tidak ditentukan"
-            
-            # Extract education
-            try:
-                edu_el = card_element.find_element(By.CSS_SELECTOR, self.SELECTORS['job_education'])
-                education = edu_el.text.strip()
-            except NoSuchElementException:
-                education = "Tidak ditentukan"
             
             # Create JobData object
             job = JobData(
                 no=len(self.jobs_found) + 1,
-                posisi=title,
-                perusahaan=company,
-                lokasi=location,
-                gaji=salary,
-                tipe_pekerjaan=job_type,
-                pengalaman=experience,
-                pendidikan=education,
-                tanggal_posting=posted_date,
-                deskripsi_singkat=description,
-                link=f"https://id.jobstreet.com{link}" if link and link.startswith('/') else link,
+                posisi=job_data['title'],
+                perusahaan=job_data['company'],
+                lokasi=job_data['location'],
+                gaji=job_data['salary'],
+                tipe_pekerjaan=job_data['jobType'],
+                pengalaman=job_data['experience'],
+                pendidikan=job_data['education'],
+                tanggal_posting=job_data['postedDate'],
+                deskripsi_singkat=job_data['description'],
+                link=f"https://id.jobstreet.com{job_data['link']}" if job_data['link'] and job_data['link'].startswith('/') else job_data['link'],
                 waktu_scraping=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 page_number=page_num
             )
@@ -410,7 +434,7 @@ class JobStreetScraper:
             return None
     
     def scrape_page(self, page_num: int) -> List[JobData]:
-        """Scrape satu halaman lowongan"""
+        """Scrape satu halaman lowongan - optimized with O(1) duplicate detection"""
         jobs_on_page = []
         
         try:
@@ -421,7 +445,7 @@ class JobStreetScraper:
             
             # Scroll untuk trigger lazy loading
             self._scroll_page(self.driver)
-            self._human_like_delay(1, 2)
+            self._human_like_delay(0.5, 1.5)  # Reduced delay
             
             # Dapatkan semua job cards
             job_cards = self.driver.find_elements(By.CSS_SELECTOR, self.SELECTORS['job_card'])
@@ -432,15 +456,16 @@ class JobStreetScraper:
             
             logger.info(f"   ✓ Ditemukan {len(job_cards)} lowongan di halaman {page_num}")
             
-            # Ekstrak setiap job card
+            # Ekstrak setiap job card dengan batch processing
             for idx, card in enumerate(job_cards, 1):
                 try:
                     job = self._extract_job_from_card(card, page_num)
                     if job:
                         with self._lock:
-                            # Cek duplikasi berdasarkan link
-                            is_duplicate = any(j.link == job.link for j in self.jobs_found)
-                            if not is_duplicate:
+                            # Cek duplikasi dengan O(1) menggunakan set
+                            link_hash = hashlib.md5(job.link.encode()).hexdigest()
+                            if link_hash not in self.seen_links:
+                                self.seen_links.add(link_hash)
                                 job.no = len(self.jobs_found) + 1
                                 self.jobs_found.append(job)
                                 jobs_on_page.append(job)
@@ -456,7 +481,7 @@ class JobStreetScraper:
         return jobs_on_page
     
     def navigate_to_next_page(self) -> bool:
-        """Navigasi ke halaman berikutnya, return True jika berhasil"""
+        """Navigasi ke halaman berikutnya, return True jika berhasil - optimized"""
         try:
             # Cari tombol next
             try:
@@ -466,12 +491,12 @@ class JobStreetScraper:
                 
                 # Scroll ke tombol next
                 self.driver.execute_script("arguments[0].scrollIntoView(true);", next_btn)
-                self._human_like_delay(0.5, 1)
+                self._human_like_delay(0.3, 0.6)  # Reduced delay
                 
                 # Klik dengan JavaScript untuk menghindari deteksi
                 self.driver.execute_script("arguments[0].click();", next_btn)
                 
-                # Tunggu halaman baru load
+                # Tunggu halaman baru load - optimized wait
                 time.sleep(self.config.click_delay)
                 WebDriverWait(self.driver, self.config.timeout_page_load).until(
                     lambda d: d.current_url != d.current_url  # URL berubah atau konten reload
@@ -491,7 +516,7 @@ class JobStreetScraper:
     
     def scrape(self, keyword: str, location: str) -> List[JobData]:
         """
-        Fungsi utama scraping dengan retry mechanism
+        Fungsi utama scraping dengan retry mechanism - optimized
         """
         # Format URL
         search_keyword = keyword.replace(' ', '%20')
@@ -504,8 +529,9 @@ class JobStreetScraper:
         logger.info(f"🌐 URL: {base_url}")
         logger.info(f"{'='*60}")
         
-        # Reset jobs found
+        # Reset jobs found and seen links
         self.jobs_found = []
+        self.seen_links.clear()
         
         # Buat driver
         self.driver = self._create_driver()
@@ -514,7 +540,7 @@ class JobStreetScraper:
             # Navigate ke halaman pertama
             logger.info("📡 Menghubungkan ke JobStreet...")
             self.driver.get(base_url)
-            time.sleep(5)  # Wait initial load
+            time.sleep(3)  # Reduced initial load wait from 5 to 3
             
             page_num = 1
             
@@ -539,8 +565,8 @@ class JobStreetScraper:
                 
                 page_num += 1
                 
-                # Random delay antar halaman untuk menghindari blocking
-                self._human_like_delay(2, 4)
+                # Reduced random delay antar halaman untuk menghindari blocking
+                self._human_like_delay(1, 2.5)
                 
         except KeyboardInterrupt:
             logger.warning("\n\n🛑 Dibatalkan oleh user")
