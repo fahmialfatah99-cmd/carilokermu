@@ -157,6 +157,51 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+**Error: `DevToolsActivePort file doesn't exist` atau `session not created`**
+```bash
+# Ini terjadi karena Chrome tidak bisa berjalan di environment headless
+# Solusi 1: Install dependencies yang diperlukan
+sudo apt update
+sudo apt install -y chromium-browser chromium-chromedriver
+
+# Solusi 2: Pastikan flag --no-sandbox dan --disable-dev-shm-usage aktif
+# (Sudah otomatis ditambahkan di kode)
+
+# Solusi 3: Tingkatkan shared memory jika menggunakan Docker
+docker run --shm-size=2g ...
+
+# Solusi 4: Jalankan dengan user biasa (jangan root)
+# Jika harus pakai root, tambahkan --no-sandbox (sudah ada di kode)
+```
+
+**Error: `ChromeDriver not found` atau versi tidak cocok**
+```bash
+# Hapus cache WebDriver dan biarkan download ulang
+rm -rf ~/.wdm/drivers/chromedriver
+python jalan_otomatis.py  # Akan download otomatis
+
+# Atau install manual
+sudo apt install chromium-chromedriver
+```
+
+**Browser crash atau hang saat scraping**
+```bash
+# Kurangi concurrent threads di config
+# Edit bagian MAX_WORKERS di jalan_otomatis.py
+MAX_WORKERS = 2  # Dari 5 menjadi 2
+
+# Disable images untuk menghemat resource
+# Saat running, pilih 'y' untuk disable images
+```
+
+**Memory usage terlalu tinggi**
+```bash
+# Gunakan mode headless (default sudah on)
+# Disable images
+# Kurangi jumlah thread (MAX_WORKERS)
+# Restart scraper setiap N keyword dengan menambahkan delay
+```
+
 ## 🚀 Instalasi
 
 ### 1. Clone Repository
