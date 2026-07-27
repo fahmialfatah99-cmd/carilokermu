@@ -317,7 +317,7 @@ Setelah mendapatkan hasil scraping, generate CV dan surat lamaran secara otomati
 
 1. **Jalankan script:**
    ```bash
-   python3 auto_cv_generator.py
+   python3 auto_cv_selector.py
    ```
 
 2. **Pilih file hasil scraping** dari daftar yang ditampilkan
@@ -327,6 +327,157 @@ Setelah mendapatkan hasil scraping, generate CV dan surat lamaran secara otomati
 4. **Isi data diri** (hanya sekali, akan tersimpan untuk penggunaan berikutnya)
 
 5. **CV dan Cover Letter otomatis dibuat** dalam format DOCX dan PDF
+
+---
+
+### 🤖 Auto Apply / Auto Daftar Lowongan
+
+Fitur untuk **mengisi form lamaran secara otomatis** langsung ke website job portal!
+
+#### Fitur Auto Apply:
+- ✅ **Auto Fill Form**: Mengisi otomatis form lamaran dengan data diri
+- ✅ **Auto Upload CV**: Mengupload CV dan dokumen pendukung
+- ✅ **Multi-Platform Support**: Mendukung berbagai job portal (JobStreet, Kalibrr, LinkedIn, dll)
+- ✅ **Smart Detection**: Deteksi otomatis field form yang perlu diisi
+- ✅ **Error Handling**: Retry otomatis jika terjadi error
+
+#### Langkah-langkah:
+
+1. **Pastikan sudah memiliki:**
+   - File hasil scraping (dari `easy_search.py`)
+   - CV yang sudah di-generate (dari `auto_cv_selector.py`)
+   - Data diri lengkap di `carilokermu/data_diri.json`
+
+2. **Jalankan script auto apply:**
+   ```bash
+   python3 auto_apply.py
+   ```
+
+3. **Pilih lowongan** yang ingin dilamar dari daftar
+
+4. **Login ke akun** job portal Anda (akan dibuka browser)
+
+5. **Script akan otomatis:**
+   - Membuka halaman lamaran
+   - Mengisi form dengan data diri
+   - Mengupload CV dan dokumen
+   - Submit aplikasi
+
+6. **Tunggu konfirmasi** aplikasi berhasil dikirim
+
+#### Contoh Penggunaan:
+
+```bash
+$ python3 auto_apply.py
+
+============================================================
+🤖 AUTO APPLY - LAMAR LOWONGAN OTOMATIS
+============================================================
+
+📂 Memuat data diri...
+✅ Data diri dimuat: Budi Santoso
+
+📂 Memuat hasil scraping...
+✅ Ditemukan 45 lowongan
+
+📋 DAFTAR LOWONGAN TERSEDIA
+============================================================
+
+[1] Staff Administrasi
+    🏢 PT Maju Jaya
+    📍 Jakarta Selatan
+    💰 Rp 5-7 juta
+    🔗 https://jobstreet.co.id/job/12345
+
+[2] Admin Officer
+    🏢 CV Berkah
+    📍 Bandung
+    ...
+
+Pilih nomor lowongan yang ingin dilamar (atau 0 untuk keluar): 1
+
+🎯 Anda memilih: Staff Administrasi di PT Maju Jaya
+
+👉 Mode auto apply? (y/n): y
+
+🚀 Memulai auto apply...
+🔓 Membuka halaman login...
+✏️ Mengisi form data diri...
+📎 Mengupload CV: CV_Budi_Santoso_Staff_Administrasi.docx
+📎 Mengupload Dokumen: Ijazah, Transkrip, dll...
+✅ Submit aplikasi...
+
+============================================================
+✅ APLIKASI BERHASIL DIKIRIM!
+============================================================
+
+📧 Konfirmasi akan dikirim ke email: budi@email.com
+📁 Status aplikasi dapat dicek di dashboard JobStreet
+
+💡 Tips:
+   • Pantau email untuk notifikasi selanjutnya
+   • Cek dashboard job portal untuk status lamaran
+   • Jangan spam apply, tunggu proses selesai
+
+============================================================
+```
+
+#### Mode yang Tersedia:
+
+| Mode | Deskripsi | Command |
+|------|-----------|---------|
+| **Manual Review** | Review setiap langkah sebelum submit | `python3 auto_apply.py --manual` |
+| **Full Auto** | Otomatis tanpa konfirmasi | `python3 auto_apply.py --auto` |
+| **Batch Apply** | Lamar multiple lowongan sekaligus | `python3 auto_apply.py --batch 5` |
+| **Dry Run** | Simulasi tanpa submit (testing) | `python3 auto_apply.py --dry-run` |
+
+#### Konfigurasi Auto Apply:
+
+Edit file `auto_apply_config.json` untuk menyesuaikan:
+
+```json
+{
+  "delay_between_fields": 500,
+  "delay_between_upload": 1000,
+  "retry_on_error": true,
+  "max_retries": 3,
+  "headless": false,
+  "supported_platforms": ["jobstreet", "kalibrr", "linkedin", "glassdoor"],
+  "auto_detect_fields": true,
+  "upload_documents": ["cv", "ijazah", "transkrip", "foto"]
+}
+```
+
+#### ⚠️ Penting:
+
+1. **Gunakan dengan bijak**: Jangan spam apply ke terlalu banyak lowongan dalam waktu singkat
+2. **Review sebelum submit**: Selalu review data yang terisi sebelum submit final
+3. **Rate limiting**: Script otomatis menunggu 3-5 detik antara setiap aksi
+4. **Platform support**: Tidak semua website job portal mendukung auto-fill
+5. **Login required**: Pastikan sudah punya akun dan login di job portal target
+
+#### Troubleshooting Auto Apply:
+
+**Form tidak terisi otomatis:**
+- Website mungkin menggunakan custom form handler
+- Coba mode manual: `python3 auto_apply.py --manual`
+- Update CSS selector di `auto_apply.py`
+
+**Upload gagal:**
+- Periksa ukuran file (max 2MB biasanya)
+- Format file harus PDF atau DOCX
+- Koneksi internet stabil
+
+**Login session expired:**
+- Login ulang di browser
+- Script akan membuka halaman login otomatis
+
+**Website mendeteksi bot:**
+- Gunakan mode headless: false
+- Tambahkan delay lebih lama
+- Gunakan proxy jika perlu
+
+---
 
 #### Contoh Penggunaan:
 
@@ -679,7 +830,8 @@ Jika mengalami masalah:
 | Jalankan mode otomatis | `python3 easy_search.py` | `python easy_search.py` |
 | Jalankan mode manual | `python3 main.py` | `python main.py` |
 | Aktifkan venv | `source venv/bin/activate` | `.\venv\Scripts\Activate.ps1` |
-| Generate CV | `python3 auto_cv_generator.py` | `python auto_cv_generator.py` |
+| Generate CV | `python3 auto_cv_selector.py` | `python auto_cv_selector.py` |
+| Auto Apply / Lamar Otomatis | `python3 auto_apply.py` | `python auto_apply.py` |
 
 ### Struktur Folder
 
@@ -691,6 +843,8 @@ job-scraper/
 ├── main.py                   # Mode manual (advanced)
 ├── auto_cv_selector.py       # Pilih lowongan & generate CV
 ├── auto_cv_generator.py      # Generate CV lengkap
+├── auto_apply.py             # Auto apply / lamar otomatis
+├── auto_apply_config.json    # Konfigurasi auto apply
 ├── .gitignore                # Git ignore rules
 ├── carilokermu/              # Folder data & output
 │   ├── data_diri.json        # Data diri (auto-generated)
