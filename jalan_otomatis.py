@@ -267,7 +267,8 @@ class JobStreetScraper:
         options = self._get_chrome_options()
         
         # Gunakan webdriver-manager untuk auto-download chromedriver
-        service = Service(ChromeDriverManager().install())
+        # Gunakan driver_version=None untuk mendapatkan versi yang sesuai dengan browser
+        service = Service(ChromeDriverManager(driver_version=None).install())
         
         driver = webdriver.Chrome(service=service, options=options)
         
