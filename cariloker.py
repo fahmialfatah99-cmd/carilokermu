@@ -1,6 +1,6 @@
 import pandas as pd
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
-from playwright_stealth import stealth
+from playwright_stealth import Stealth
 from selectolax.parser import HTMLParser
 import logging
 import argparse
@@ -64,9 +64,10 @@ class JobScraper:
         
         try:
             with sync_playwright() as p:
-                browser = p.chromium.launch(headless=self.headless)
+                stealth = Stealth()
+                browser = p.firefox.launch(headless=self.headless)
                 page = browser.new_page()
-                stealth(page)  # Menyamar sebagai browser asli
+                stealth.apply_stealth_sync(page)  # Menyamar sebagai browser asli
                 
                 # Set user agent dan viewport
                 page.set_viewport_size({"width": 1920, "height": 1080})
