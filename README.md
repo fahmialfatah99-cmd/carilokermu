@@ -1,11 +1,12 @@
-# 🚀 Job Scraper Otomatis & Manual - Selenium + Playwright
+# 🚀 Job Scraper Otomatis & Manual - Selenium + Playwright + BeautifulSoup
 
-Tool scraping lowongan kerja yang fleksibel, mendukung **Linux**, **Windows**, dan **macOS**. Tersedia dalam berbagai mode: **Selenium Max**, **Otomatis (Interaktif)**, dan **Manual (Config Code)**.
+Tool scraping lowongan kerja yang fleksibel, mendukung **Linux**, **Windows**, dan **macOS**. Tersedia dalam berbagai mode: **Selenium Max**, **BeautifulSoup (Ringan)**, **Otomatis (Interaktif)**, dan **Manual (Config Code)**.
 
 ![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Selenium](https://img.shields.io/badge/selenium-latest-success)
 ![Playwright](https://img.shields.io/badge/playwright-latest-success)
+![BeautifulSoup](https://img.shields.io/badge/beautifulsoup-latest-success)
 
 ## ✨ Fitur Utama
 
@@ -13,8 +14,9 @@ Tool scraping lowongan kerja yang fleksibel, mendukung **Linux**, **Windows**, d
 - ✅ **DATA GAJI & PERUSAHAAN WAJIB ADA**: Validasi otomatis memastikan data penting selalu tersedia.
 - ✅ **Tanpa Batas Halaman**: Default scraping berjalan terus hingga data habis (bisa dibatasi manual).
 - ✅ **Multi-Platform**: Panduan instalasi lengkap untuk Linux, Windows, dan Mac.
-- ✅ **Tiga Mode Penggunaan**:
+- ✅ **Empat Mode Penggunaan**:
   - **Selenium Max Mode**: Scraping maksimal dengan anti-deteksi tingkat tinggi.
+  - **BeautifulSoup Mode**: Ringan, cepat, TIDAK PERLU CHROME/SELENIUM! ⭐ RECOMMENDED
   - **Easy Mode**: Tinggal jalankan, jawab pertanyaan, selesai.
   - **Pro Mode**: Edit konfigurasi langsung di kode untuk kontrol penuh.
 - ✅ **Anti-Deteksi Canggih**: User agent random, stealth mode, scroll otomatis, retry otomatis.
@@ -90,6 +92,7 @@ brew install --cask google-chrome
 
 | File | Deskripsi | Mode | Tingkat Kesulitan |
 |------|-----------|------|-------------------|
+| `beautifulsoup_scraper.py` | **SCRAPER RINGAN** dengan Requests + BeautifulSoup | Otomatis | ⭐ Mudah |
 | `selenium_max_scraper.py` | **SCRAPER MAKSIMAL** dengan Selenium + Chromium | Otomatis | ⭐⭐ Menengah |
 | `easy_search.py` | Scraper interaktif dengan input user (Playwright) | Otomatis | ⭐ Mudah |
 | `main.py` | Scraper dengan konfigurasi di kode (Playwright) | Manual | ⭐⭐ Menengah |
@@ -99,7 +102,42 @@ brew install --cask google-chrome
 
 ## 🚀 Cara Penggunaan
 
-### Mode 1: Selenium Max Scraper (HASIL MAKSIMAL) ⭐ RECOMMENDED
+### Mode 1: BeautifulSoup Scraper (PALING RINGAN) ⭐ RECOMMENDED UNTUK PEMULA
+
+Cocok untuk pengguna yang ingin scraping cepat, ringan, TANPA PERLU INSTALL CHROME/SELENIUM!
+
+```bash
+python beautifulsoup_scraper.py
+```
+
+**Langkah-langkah:**
+1. Jalankan script
+2. Masukkan posisi/jabatan yang dicari (contoh: Administrasi)
+3. Masukkan kota/lokasi (contoh: Jakarta Selatan)
+4. Tentukan batas halaman (tekan Enter untuk unlimited)
+5. Scraping berjalan otomatis dengan retry logic dan user agent random
+6. Hasil tersimpan dengan kolom lengkap termasuk **Gaji** dan **Perusahaan**
+
+**Keunggulan:**
+- ✅ TIDAK PERLU CHROME/CHROMIUM - Hanya butuh Python + requests
+- ✅ Sangat ringan dan cepat
+- ✅ User agent random untuk menghindari blocking
+- ✅ Retry otomatis jika gagal fetch
+- ✅ Multi-selector fallback untuk elemen yang sulit diambil
+- ✅ Validasi wajib: Gaji dan Perusahaan harus ada
+
+**Kekurangan:**
+- ⚠️ Tidak bisa handle JavaScript-heavy content (tapi JobStreet tetap bisa discrape)
+- ⚠️ Mungkin perlu update headers jika website berubah
+
+**Contoh Output:**
+```
+loker_bs4_Admin_Jakarta_20240101_120000.csv
+```
+
+---
+
+### Mode 2: Selenium Max Scraper (HASIL MAKSIMAL) ⭐ RECOMMENDED UNTUK ADVANCED
 
 Cocok untuk pengguna yang menginginkan hasil scraping maksimal tanpa batasan dengan anti-deteksi tingkat tinggi.
 
@@ -124,6 +162,10 @@ python selenium_max_scraper.py
 - ✅ Multi-selector fallback untuk elemen yang sulit diambil
 - ✅ Stealth mode dengan CDP commands
 
+**Persyaratan:**
+- ⚠️ HARUS INSTALL CHROME/CHROMIUM terlebih dahulu
+- ⚠️ Lebih berat dan lambat dibanding BeautifulSoup
+
 **Contoh Output:**
 ```
 loker_selenium_Admin_Jakarta_20240101_120000.csv
@@ -131,7 +173,7 @@ loker_selenium_Admin_Jakarta_20240101_120000.csv
 
 ---
 
-### Mode 2: Easy Search (Paling Mudah)
+### Mode 3: Easy Search (Paling Mudah)
 
 Cocok untuk pemula yang ingin cepat mendapatkan hasil tanpa edit kode.
 
@@ -154,7 +196,7 @@ loker_administrasi_jakarta_selatan.csv
 
 ---
 
-### Mode 3: Main.py (Konfigurasi Kode)
+### Mode 4: Main.py (Konfigurasi Kode)
 
 Cocok untuk pengguna yang ingin kontrol penuh atas parameter scraping.
 
@@ -180,7 +222,7 @@ python main.py
 
 ---
 
-### Mode 4: Jalan Otomatis (Menu Interaktif Lengkap)
+### Mode 5: Jalan Otomatis (Menu Interaktif Lengkap)
 
 Cocok untuk pengguna yang menginginkan pengalaman interaktif dengan menu lengkap.
 
@@ -229,7 +271,7 @@ Semua script menghasilkan file CSV dengan kolom berikut:
 | Link | URL lengkap ke lowongan |
 | Waktu Scraping | Waktu pengambilan data |
 
-*Catatan: `selenium_max_scraper.py` dan `jalan_otomatis.py` memiliki kolom paling lengkap*
+*Catatan: `beautifulsoup_scraper.py`, `selenium_max_scraper.py` dan `jalan_otomatis.py` memiliki kolom paling lengkap*
 
 ---
 
@@ -264,6 +306,19 @@ CONFIG = {
     'explicit_wait': 15,  # Timeout tunggu elemen (detik)
     'scroll_pause': 2,  # Jeda saat scroll (detik)
     'retry_attempts': 3,  # Jumlah percobaan ulang
+    'ensure_salary_company': True,  # Paksa ambil gaji dan perusahaan
+}
+```
+
+### Konfigurasi BeautifulSoup Scraper
+
+Edit bagian `CONFIG` di `beautifulsoup_scraper.py`:
+
+```python
+CONFIG = {
+    'max_pages': 0,  # 0 = unlimited
+    'retry_attempts': 3,  # Jumlah percobaan ulang jika gagal fetch
+    'timeout': 30,  # Timeout request (detik)
     'ensure_salary_company': True,  # Paksa ambil gaji dan perusahaan
 }
 ```
@@ -367,6 +422,7 @@ lxml>=5.1.0
 selenium>=4.15.0
 fake-useragent>=1.4.0
 webdriver-manager>=4.0.0
+requests>=2.31.0
 ```
 
 Install semua dependencies dengan:
@@ -375,6 +431,7 @@ pip install -r requirements.txt
 ```
 
 **Catatan:** 
+- `beautifulsoup4` + `requests` untuk BeautifulSoup Scraper (RINGAN!)
 - `selenium` + `webdriver-manager` untuk Selenium Max Scraper
 - `playwright` untuk easy_search.py, main.py, dan jalan_otomatis.py
 - `fake-useragent` untuk user agent random anti-deteksi
@@ -412,7 +469,8 @@ Jika mengalami masalah:
 
 | Kebutuhan | Script yang Direkomendasikan |
 |-----------|------------------------------|
-| **Hasil MAKSIMAL** | `selenium_max_scraper.py` ⭐ |
+| **Ringan & Cepat (TANPA CHROME)** | `beautifulsoup_scraper.py` ⭐⭐⭐ |
+| **Hasil MAKSIMAL** | `selenium_max_scraper.py` ⭐⭐ |
 | Cepat & Simpel | `easy_search.py` |
 | Kontrol Penuh | `main.py` |
 | Menu Interaktif Lengkap | `jalan_otomatis.py` |
@@ -421,4 +479,4 @@ Jika mengalami masalah:
 
 **Dibuat dengan ❤️ untuk memudahkan pencarian lowongan kerja di Indonesia**
 
-*Last Updated: 2024 - Sekarang dengan Selenium Max Scraper*
+*Last Updated: 2024 - Sekarang dengan Selenium Max Scraper + BeautifulSoup Scraper*

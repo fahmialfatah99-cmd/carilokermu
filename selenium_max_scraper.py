@@ -15,26 +15,28 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException, StaleElementReferenceException
+from selenium.common.exceptions import TimeoutException, StaleElementReferenceException, WebDriverException
 from fake_useragent import UserAgent
 from urllib.parse import quote_plus
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service as ChromeService
 
 CONFIG = {
     'max_pages': 0,
     'headless': False,
-    'explicit_wait': 15,
-    'scroll_pause': 2,
+    'explicit_wait': 20,
+    'scroll_pause': 3,
     'retry_attempts': 3,
     'ensure_salary_company': True,
 }
 
 SELECTORS = {
-    'job_card': '[data-automation="jobCard"]',
-    'job_title': '[data-automation="jobCardTitle"]',
-    'company_name': '[data-automation="jobCardCompany"]',
-    'location': '[data-automation="jobCardLocation"]',
-    'salary': '[data-automation="jobCardSalary"]',
-    'next_button': 'a[aria-label="Next Page"]',
+    'job_card': 'article[data-automation="jobCard"], div[data-automation="jobCard"], .job-card',
+    'job_title': 'a[data-automation="jobCardTitle"], h1 a, .job-title a, [data-testid="job-card-title"]',
+    'company_name': '[data-automation="jobCardCompany"], .company-name, [data-testid="company-name"]',
+    'location': '[data-automation="jobCardLocation"], .location, [data-testid="location"]',
+    'salary': '[data-automation="jobCardSalary"], .salary, [data-testid="salary"], .job-salary',
+    'next_button': 'a[aria-label="Next Page"], button:contains("Next"), .pagination-next',
 }
 
 class JobStreetScraper:
@@ -54,10 +56,25 @@ class JobStreetScraper:
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-blink-features=AutomationControlled')
         chrome_options.add_experimental_option('excludeSwitches', ['enable-automation'])
-        service = Service()
-        self.driver = webdriver.Chrome(service=service, options=chrome_options)
-        self.driver.set_page_load_timeout(30)
-        print("✅ WebDriver berhasil diinisialisasi")
+        chrome_options.add_experimental_option('useAutomationExtension', False)
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument('--start-maximized')
+        
+        for attempt in range(3):
+            try:
+                # Gunakan webdriver-manager untuk download chromedriver otomatis
+                service = ChromeService(ChromeDriverManager().install())
+                self.driver = webdriver.Chrome(service=service, options=chrome_options)
+                self.driver.set_page_load_timeout(60)
+                self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+                print("✅ WebDriver berhasil diinisialisasi")
+                return
+            except Exception as e:
+                print(f"⚠️  Attempt {attempt + 1} failed: {e}")
+                if attempt < 2:
+                    time.sleep(2)
+                else:
+                    raise
         
     def scroll_page(self):
         try:
@@ -100,19 +117,47 @@ class JobStreetScraper:
     def scrape_page(self, page_num):
         jobs_on_page = []
         try:
+            # Tunggu lebih lama untuk load konten
+            time.sleep(3)
             self.scroll_page()
+            
+            # Coba multiple selectors untuk job cards
             wait = WebDriverWait(self.driver, self.config['explicit_wait'])
-            wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, SELECTORS['job_card'])))
-            job_cards = self.driver.find_elements(By.CSS_SELECTOR, SELECTORS['job_card'])
+            
+            job_cards = []
+            for selector in SELECTORS['job_card'].split(', '):
+                try:
+                    elements = wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, selector.strip())))
+                    if elements:
+                        job_cards = elements
+                        break
+                except:
+                    continue
+            
+            if not job_cards:
+                # Fallback: cari semua elemen yang mirip job card
+                try:
+                    job_cards = self.driver.find_elements(By.CSS_SELECTOR, 'article, div[class*="job"], div[class*="card"]')
+                except:
+                    pass
+            
             if job_cards:
                 print(f"   ✓ Ditemukan {len(job_cards)} lowongan di halaman {page_num}")
-                for idx, card in enumerate(job_cards, 1):
+                for idx, card in enumerate(job_cards[:30], 1):  # Limit 30 per page untuk menghindari duplikasi
                     try:
                         job_data = self.extract_job_from_card(card, len(self.jobs) + len(jobs_on_page) + 1)
-                        jobs_on_page.append(job_data)
-                    except: continue
+                        # Hanya tambahkan jika ada posisi atau perusahaan
+                        if job_data['Posisi'] != '-' or job_data['Perusahaan'] != '-':
+                            jobs_on_page.append(job_data)
+                    except Exception as e:
+                        continue
+            else:
+                print(f"   ⚠️  Tidak ditemukan job card dengan selector yang ada")
+                
         except Exception as e:
             print(f"❌ Error scraping halaman {page_num}: {e}")
+            import traceback
+            traceback.print_exc()
         return jobs_on_page
     
     def has_next_page(self):
@@ -137,25 +182,43 @@ class JobStreetScraper:
         print(f"{'='*60}\n")
         self.setup_driver()
         page_num = 1
+        base_url = f"https://id.jobstreet.com/id/jobs?keyword={quote_plus(keyword)}&location={quote_plus(location)}"
+        
         try:
+            # Load halaman pertama dulu
+            print(f"\n📄 Halaman {page_num}")
+            print(f"   🌐 Loading: {base_url}")
+            self.driver.get(base_url)
+            time.sleep(8)  # Tunggu lebih lama untuk load awal
+            
             while True:
                 if self.config['max_pages'] > 0 and page_num > self.config['max_pages']:
                     break
-                url = f"https://id.jobstreet.com/id/jobs?keyword={quote_plus(keyword)}&location={quote_plus(location)}"
-                if page_num > 1: url += f"&page={page_num}"
-                print(f"\n📄 Halaman {page_num}")
-                self.driver.get(url)
-                time.sleep(5)
+                    
                 jobs_on_page = self.scrape_page(page_num)
                 self.jobs.extend(jobs_on_page)
-                if not jobs_on_page or not self.has_next_page():
+                
+                if not jobs_on_page:
+                    print(f"   ⚠️  Tidak ada lowongan di halaman {page_num}, berhenti...")
                     break
+                    
+                if not self.has_next_page():
+                    print(f"   ✅ Halaman terakhir tercapai")
+                    break
+                    
                 self.go_to_next_page()
                 page_num += 1
+                time.sleep(3)  # Delay antar halaman
+                
         except KeyboardInterrupt:
             print("\n🛑 Dibatalkan oleh user.")
+        except Exception as e:
+            print(f"\n❌ Error saat scraping: {e}")
+            import traceback
+            traceback.print_exc()
         finally:
-            if self.driver: self.driver.quit()
+            if self.driver:
+                self.driver.quit()
         return self.jobs
     
     def save_to_csv(self, filename):
