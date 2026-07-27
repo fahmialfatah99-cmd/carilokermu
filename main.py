@@ -7,8 +7,8 @@ dari berbagai situs job portal. Dilengkapi dengan stealth mode untuk menghindari
 
 import pandas as pd
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
-from playwright_stealth import stealth_sync
-from selectolax.parser import HTML
+from playwright_stealth import stealth
+from selectolax.parser import HTMLParser
 from typing import List, Dict, Optional
 import logging
 
@@ -42,7 +42,7 @@ def scrape_loker(url_target: str, keyword: str, max_pages: int = 3) -> List[Dict
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             )
             page = context.new_page()
-            stealth_sync(page)  # Menyamar sebagai browser asli
+            stealth(page)  # Menyamar sebagai browser asli
             
             # Coba beberapa pola URL umum
             url_patterns = [
@@ -73,7 +73,7 @@ def scrape_loker(url_target: str, keyword: str, max_pages: int = 3) -> List[Dict
             page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
             page.wait_for_timeout(2000)  # Tunggu 2 detik setelah scroll
             
-            tree = HTML(page.content())
+            tree = HTMLParser(page.content())
             
             # --- SESUAIKAN CSS SELECTOR DI BAWAH INI DENGAN WEBSITE TARGET ---
             # Contoh struktur umum (misal: Glints/Jobstreet/LinkedIn)
@@ -149,7 +149,7 @@ def scrape_loker(url_target: str, keyword: str, max_pages: int = 3) -> List[Dict
                         page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
                         page.wait_for_timeout(2000)
                         
-                        tree = HTML(page.content())
+                        tree = HTMLParser(page.content())
                         # Proses kartu lowongan seperti sebelumnya
                         for card_selector in selectors['card']:
                             job_cards = tree.css(card_selector)
@@ -236,27 +236,109 @@ def save_to_csv(data: List[Dict[str, str]], filename: str = "hasil_loker.csv") -
 
 
 def main():
-    """Fungsi utama untuk menjalankan scraper."""
-    # Ganti dengan URL situs loker target (contoh: situs internal, Glints, dll)
-    TARGET_SITE = "https://contoh-situs-loker.com" 
-    KEYWORD = "Data Analyst"
-    MAX_PAGES = 3
-    OUTPUT_FILE = "hasil_loker.csv"
+    """Fungsi utama untuk menjalankan scraper dengan menu interaktif."""
+    print("=" * 60)
+    print("🔍 PENCARI LOWONGAN KERJA INTERAKTIF")
+    print("=" * 60)
     
-    hasil = scrape_loker(TARGET_SITE, KEYWORD, max_pages=MAX_PAGES)
+    # Input dari user
+    target_site = input("\n📌 Masukkan URL website job portal (contoh: https://www.jobstreet.co.id): ").strip()
+    if not target_site:
+        target_site = "https://www.jobstreet.co.id"
+    
+    keyword = input("🔎 Kata kunci pencarian (contoh: admin, data analyst): ").strip()
+    if not keyword:
+        print("❌ Keyword tidak boleh kosong!")
+        return
+    
+    try:
+        max_pages = int(input("📄 Jumlah maksimal halaman yang akan di-scrape (default: 3): ").strip() or "3")
+    except ValueError:
+        max_pages = 3
+    
+    output_file = f"loker_{keyword.replace(' ', '_')}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv"
+    
+    print(f"\n⏳ Mencari lowongan untuk '{keyword}' di {target_site}...")
+    hasil = scrape_loker(target_site, keyword, max_pages=max_pages)
     
     if hasil:
-        save_to_csv(hasil, OUTPUT_FILE)
-        print(f"\n{'='*50}")
-        print(f"Scraping selesai!")
-        print(f"Total lowongan ditemukan: {len(hasil)}")
-        print(f"Data tersimpan di: {OUTPUT_FILE}")
-        print(f"{'='*50}")
+        save_to_csv(hasil, output_file)
+        print(f"\n{'='*60}")
+        print(f"✅ SELESAI!")
+        print(f"   Total lowongan ditemukan: {len(hasil)}")
+        print(f"   File hasil: {output_file}")
+        print(f"   Buka file tersebut dengan Excel atau Google Sheets")
+        print(f"{'='*60}\n")
+        
+        # Menu interaktif untuk memilih lowongan
+        print("📋 DAFTAR LOWONGAN DITEMUKAN:")
+        print("-" * 60)
+        for i, loker in enumerate(hasil, 1):
+            print(f"{i:3}. {loker['Posisi']} - {loker['Perusahaan']} ({loker['Lokasi']})")
+        
+        print("\n" + "=" * 60)
+        print("🎯 PILIH LOWONGAN UNTUK DILAMAR")
+        print("=" * 60)
+        print("Masukkan nomor lowongan (pisahkan dengan koma untuk multiple):")
+        print("Contoh: 1,3,5 atau ketik 'all' untuk semua lowongan")
+        print("Ketik 'q' untuk keluar")
+        
+        pilihan = input("\n➤ Pilihan Anda: ").strip().lower()
+        
+        if pilihan == 'q':
+            print("👋 Terima kasih telah menggunakan program ini!")
+            return
+        
+        lowongan_terpilih = []
+        if pilihan == 'all':
+            lowongan_terpilih = hasil
+            print(f"✅ Memilih semua {len(lowongan_terpilih)} lowongan")
+        else:
+            try:
+                nomor_list = [int(x.strip()) for x in pilihan.split(',')]
+                for nomor in nomor_list:
+                    if 1 <= nomor <= len(hasil):
+                        lowongan_terpilih.append(hasil[nomor - 1])
+                    else:
+                        print(f"⚠️  Nomor {nomor} tidak valid (max: {len(hasil)})")
+                
+                if not lowongan_terpilih:
+                    print("❌ Tidak ada lowongan valid yang dipilih!")
+                    return
+                    
+                print(f"✅ Berhasil memilih {len(lowongan_terpilih)} lowongan")
+            except ValueError:
+                print("❌ Format input tidak valid! Gunakan angka dipisahkan koma.")
+                return
+        
+        # Simpan lowongan terpilih
+        if lowongan_terpilih:
+            file_terpilih = f"selected_{output_file}"
+            save_to_csv(lowongan_terpilih, file_terpilih)
+            print(f"\n📝 Lowongan terpilih disimpan di: {file_terpilih}")
+            
+            # Tawarkan untuk generate CV
+            print("\n" + "=" * 60)
+            print("📄 GENERATE CV OTOMATIS?")
+            print("=" * 60)
+            jawab = input("Apakah Anda ingin generate CV untuk lowongan terpilih? (y/n): ").strip().lower()
+            
+            if jawab == 'y':
+                print("\n🔄 Menjalankan auto_cv_selector.py...")
+                import subprocess
+                subprocess.run(['python3', 'auto_cv_selector.py'])
+            else:
+                print("\n💡 Tips: Jalankan 'python3 auto_cv_selector.py' nanti untuk generate CV")
+        
+        print(f"\n{'='*60}")
+        print("🎉 PROGRAM SELESAI!")
+        print(f"{'='*60}")
     else:
-        print("\nTidak ada hasil. Periksa:")
+        print("\n❌ Tidak ada hasil. Periksa:")
         print("  1. CSS Selector sesuai dengan website target")
         print("  2. URL target dapat diakses")
         print("  3. Struktur HTML website target")
+        print("  4. Coba gunakan keyword yang berbeda")
 
 
 if __name__ == "__main__":
