@@ -36,117 +36,71 @@ git clone https://github.com/username/carilokermu.git
 cd carilokermu
 ```
 
-### 2. Install Dependencies
+### 2. Setup Virtual Environment (Wajib)
+Kita menggunakan `venv` untuk mengisolasi dependensi proyek agar tidak bentrok dengan paket sistem Linux.
 
-#### **Linux - Menggunakan Chromium (Rekomendasi)**
 ```bash
-# Update package list
-sudo apt update
+# Buat virtual environment
+python3 -m venv venv
 
-# Install Python pip jika belum ada
-sudo apt install python3-pip -y
+# Aktifkan virtual environment
+source venv/bin/activate
 
-# Install Chromium browser dan driver
-sudo apt install chromium-browser chromium-chromedriver -y
-
-# Untuk Ubuntu 22.04+ atau sistem dengan snap
-# sudo snap install chromium
-
-# Install dependencies Python
-pip3 install -r requirements.txt
-
-# Verifikasi instalasi
-python3 main.py --help
-
-# Cek versi Chromium
-chromium --version
+# Verifikasi: Harus muncul (venv) di awal prompt terminal Anda
+# Contoh: (venv) fahmial@linux:~/carilokermu$
 ```
 
-#### **Linux - Menggunakan Google Chrome**
+> 💡 **Tips Linux**: Jika perintah `python3 -m venv` gagal, install paket `python3-venv`:
+> - Ubuntu/Debian: `sudo apt install python3-venv`
+> - Fedora/RHEL: `sudo dnf install python3-virtualenv`
+
+### 3. Install Dependencies Python
+Dengan status `(venv)` aktif di terminal, install semua library yang dibutuhkan:
+
 ```bash
-# Update package list
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+### 4. Setup Browser (Khusus Chromium di Linux)
+Pastikan Chromium dan driver-nya terinstall di sistem Anda.
+
+#### **Untuk Ubuntu/Debian/Mint:**
+```bash
 sudo apt update
+sudo apt install chromium-browser chromium-chromedriver -y
+```
 
-# Install Python pip jika belum ada
-sudo apt install python3-pip -y
+#### **Untuk Fedora/RHEL/CentOS:**
+```bash
+sudo dnf install chromium chromium-chromedriver -y
+```
 
-# Install Google Chrome browser
+#### **Verifikasi Instalasi:**
+```bash
+chromium --version
+chromium-chromedriver --version
+```
+*Pastikan versi utama keduanya sama (misal: v120.x.xxx).*
+
+> ⚠️ **Penting untuk Pengguna Snap (Ubuntu 22.04+)**:
+> Jika Chromium terinstall via Snap, mungkin ada masalah izin. Jalankan ini:
+> ```bash
+> sudo snap connect chromium:home
+> ```
+
+#### **Alternatif: Menggunakan Google Chrome**
+Jika lebih memilih Chrome resmi:
+```bash
+# Download dan install Chrome
 wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
 sudo dpkg -i google-chrome-stable_current_amd64.deb
 sudo apt-get install -f -y  # Fix dependencies jika ada error
-
-# Install dependencies Python
-pip3 install -r requirements.txt
-
-# Verifikasi instalasi
-python3 main.py --help
-
-# Cek versi Chrome
-google-chrome --version
 ```
 
-#### **Linux (Fedora/RHEL/CentOS) - Chromium**
-```bash
-# Install Python pip
-sudo dnf install python3-pip -y
+---
 
-# Install Chromium browser
-sudo dnf install chromium chromium-chromedriver -y
-
-# Install dependencies Python
-pip3 install -r requirements.txt
-
-# Verifikasi instalasi
-python3 main.py --help
-```
-
-#### **Linux (Fedora/RHEL/CentOS) - Chrome**
-```bash
-# Install Python pip
-sudo dnf install python3-pip -y
-
-# Install Google Chrome browser
-sudo dnf install https://dl.google.com/linux/chrome/rpm/stable/x86_64/google-chrome-stable-1*.rpm -y
-
-# Install dependencies Python
-pip3 install -r requirements.txt
-
-# Verifikasi instalasi
-python3 main.py --help
-```
-
-#### **macOS**
-```bash
-# Install Homebrew jika belum ada
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-# Install Python dan Chrome
-brew install python
-brew install --cask google-chrome
-
-# Install dependencies Python
-pip3 install -r requirements.txt
-
-# Verifikasi instalasi
-python3 main.py --help
-```
-
-#### **Windows**
-```powershell
-# Install Python dari Microsoft Store atau python.org
-# Pastikan centang "Add Python to PATH" saat instalasi
-
-# Install Chrome browser
-# Download dari: https://www.google.com/chrome/
-
-# Install dependencies Python
-pip install -r requirements.txt
-
-# Verifikasi instalasi
-python main.py --help
-```
-
-### 3. Troubleshooting Instalasi
+### 🔧 Troubleshooting Instalasi
 
 | Sistem Operasi | Masalah Umum | Solusi |
 |----------------|--------------|--------|
@@ -157,7 +111,7 @@ python main.py --help
 | **Linux (Snap)** | Chromium tidak bisa akses folder | Berikan permission: `sudo snap connect chromium:home` |
 | **macOS** | Certificate verify failed | Jalankan: `/Applications/Python\ 3.x/Install\ Certificates.command` |
 | **Windows** | `pip` tidak dikenali | Tambahkan Python ke PATH atau gunakan `py -m pip` |
-| **Semua** | Module `docx` tidak ditemukan | Jalankan: `pip install python-docx reportlab` |
+| **Semua** | Module `docx` tidak ditemukan | Aktifkan venv dulu, lalu: `pip install python-docx reportlab` |
 
 #### Tips Khusus Linux Users dengan Chromium
 
@@ -320,7 +274,7 @@ Edit file `config/search_config.json` untuk set lokasi default:
 | **Linux** | Error `dpkg` saat install Chrome | Jalankan: `sudo apt-get install -f -y` |
 | **macOS** | Certificate verify failed | Jalankan: `/Applications/Python\ 3.x/Install\ Certificates.command` |
 | **Windows** | `pip` tidak dikenali | Tambahkan Python ke PATH atau gunakan `py -m pip` |
-| **Semua** | Module `docx` tidak ditemukan | Jalankan: `pip install python-docx reportlab` |
+| **Semua** | Module `docx` tidak ditemukan | Aktifkan venv dulu, lalu: `pip install python-docx reportlab` |
 
 ### Masalah Saat Running
 
