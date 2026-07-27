@@ -13,10 +13,11 @@ from urllib.parse import urljoin, urlparse
 # Set MAX_PAGES = angka tertentu (misal 5) untuk membatasi jumlah halaman
 KEYWORD = "Administrasi"
 LOCATION_FILTER = "Jakarta Selatan"
-BASE_URL = "https://id.jobstreet.com/id/jobs/in-Jakarta-Selatan-Jakarta-Raya"
+BASE_URL = "https://id.jobstreet.com/id/jobs?keyword={}&location={}".format(KEYWORD.replace(' ', '%20'), LOCATION_FILTER.replace(' ', '%20'))
 MAX_PAGES = 0  # 0 = Unlimited
 OUTPUT_FILE = f"loker_{KEYWORD.lower().replace(' ', '_')}.csv"
 HEADLESS = True  # True = tidak menampilkan browser, False = menampilkan browser
+DEBUG = False  # True = tampilkan detail debugging selector
 
 # --- LOGGING SETUP ---
 logging.basicConfig(
@@ -81,23 +82,36 @@ class JobScraper:
 
             soup = BeautifulSoup(content, 'lxml')
 
-            # Selector umum (bisa disesuaikan jika struktur website berubah)
-            # Mencoba beberapa pola selector umum untuk job listing
-            job_cards = soup.select('article, div[data-job-id], li[class*="job"], div[class*="job-card"]')
+            # Selector khusus JobStreet Indonesia (updated 2024)
+            # Mencari job card dengan selector yang lebih spesifik
+            job_cards = soup.select('article[data-automation-id="jobCard"], div[data-automation-id="jobCard"]')
             
             if not job_cards:
-                # Fallback: coba ambil semua elemen yang mungkin berisi judul job
-                job_cards = soup.select('a[href*="/job/"], div[class*="listing"]')
-                logger.warning(f"Selector standar tidak menemukan hasil, mencoba fallback. Ditemukan {len(job_cards)} elemen potensial.")
+                # Fallback: coba selector alternatif
+                job_cards = soup.select('[data-automation="jobCardTitle"] >> .. >> .. >> ..')
+                
+            if not job_cards:
+                # Fallback terakhir: cari semua elemen dengan class yang mengandung 'job'
+                job_cards = soup.select('div[class*="JobCard"], article[class*="JobCard"], li[class*="job"]')
+                if DEBUG:
+                    logger.warning(f"Selector utama tidak menemukan hasil, mencoba fallback. Ditemukan {len(job_cards)} elemen potensial.")
+
+            if DEBUG:
+                logger.info(f"Total job cards ditemukan: {len(job_cards)}")
 
             for card in job_cards:
                 try:
-                    title_elem = card.select_one('h1, h2, h3, a[class*="title"], span[class*="title"]')
-                    company_elem = card.select_one('span[class*="company"], a[class*="company"], div[class*="company"]')
-                    location_elem = card.select_one('span[class*="location"], div[class*="location"], span[class*="place"]')
-                    salary_elem = card.select_one('span[class*="salary"], div[class*="salary"], span[class*="remuneration"]')
-                    link_elem = card.select_one('a[href]')
+                    # Selector spesifik JobStreet untuk setiap field (prioritas data-automation)
+                    title_elem = card.select_one('[data-automation="jobCardTitle"], a[data-automation="jobCardTitle"], h1, h2, h3, a[class*="title"]')
+                    company_elem = card.select_one('[data-automation="jobCardCompany"], span[data-automation="jobCardCompany"], div[class*="company"], span[class*="company"]')
+                    location_elem = card.select_one('[data-automation="jobCardLocation"], span[data-automation="jobCardLocation"], div[class*="location"], span[class*="place"]')
+                    salary_elem = card.select_one('[data-automation="jobCardSalary"], span[data-automation="jobCardSalary"], div[class*="salary"], span[class*="remuneration"]')
+                    link_elem = card.select_one('a[data-automation="jobCardTitle"], a[href]')
                     
+                    if DEBUG:
+                        logger.debug(f"  - Title elem: {title_elem is not None}, Company: {company_elem is not None}, Salary: {salary_elem is not None}")
+                    
+                    # Skip jika tidak ada title atau link
                     if not title_elem and not link_elem:
                         continue
 
@@ -125,8 +139,11 @@ class JobScraper:
                             "Link": link,
                             "Sumber": urlparse(url).netloc
                         })
+                        if DEBUG:
+                            logger.debug(f"    ✓ Added: {title[:50]} | {company[:30]} | {salary}")
                 except Exception as e:
-                    logger.debug(f"Gagal memproses satu kartu: {e}")
+                    if DEBUG:
+                        logger.debug(f"  ⚠ Gagal memproses satu kartu: {e}")
                     continue
 
             logger.info(f"Ditemukan {len(jobs)} lowongan di halaman ini.")
