@@ -35,6 +35,128 @@ Scraper lowongan kerja dari JobStreet Indonesia yang dibangun dengan **Selenium 
 - Google Chrome / Chromium terinstall di sistem
 - Koneksi internet stabil
 
+## 🐧 Panduan Khusus Linux (Virtual Environment)
+
+### Mengapa Menggunakan Virtual Environment?
+
+Virtual environment (`venv`) sangat **direkomendasikan** untuk:
+- ✅ Mengisolasi dependencies project ini dari sistem
+- ✅ Mencegah konflik versi package dengan project lain
+- ✅ Memudahkan deployment dan cleanup
+- ✅ Best practice development Python profesional
+
+### Langkah-langkah Setup Virtual Environment di Linux
+
+#### 1. Install Python venv (jika belum ada)
+
+```bash
+# Ubuntu/Debian
+sudo apt update
+sudo apt install python3-venv python3-pip
+
+# Fedora/RHEL
+sudo dnf install python3-venv python3-pip
+
+# Arch Linux
+sudo pacman -S python-venv python-pip
+```
+
+#### 2. Buat Virtual Environment
+
+```bash
+# Masuk ke folder project
+cd /workspace
+
+# Buat virtual environment bernama 'venv'
+python3 -m venv venv
+
+# Atau jika python command tidak tersedia
+python3 -m venv venv
+```
+
+#### 3. Aktifkan Virtual Environment
+
+```bash
+# Aktifkan virtual environment
+source venv/bin/activate
+
+# Anda akan melihat (venv) di awal prompt terminal
+# Contoh: (venv) user@linux:~/workspace$
+```
+
+#### 4. Install Dependencies dalam Virtual Environment
+
+```bash
+# Pastikan venv aktif (lihat ada tulisan (venv) di terminal)
+pip install --upgrade pip
+
+# Install semua dependencies
+pip install -r requirements.txt
+```
+
+#### 5. Jalankan Scraper
+
+```bash
+# Pastikan masih dalam virtual environment
+python jalan_otomatis.py
+```
+
+#### 6. Nonaktifkan Virtual Environment
+
+```bash
+# Setelah selesai, keluar dari virtual environment
+deactivate
+```
+
+### Manajemen Virtual Environment
+
+```bash
+# Cek apakah venv aktif
+echo $VIRTUAL_ENV  # Akan menampilkan path venv jika aktif
+
+# Lihat package yang terinstall di venv
+pip list
+
+# Freeze dependencies ke requirements.txt
+pip freeze > requirements.txt
+
+# Hapus virtual environment (jika ingin reset)
+rm -rf venv
+```
+
+### Menjalankan dengan Cron Job (Linux Automation)
+
+Untuk menjalankan scraper secara otomatis dengan cron:
+
+```bash
+# Edit crontab
+crontab -e
+
+# Tambahkan job (contoh: jalankan setiap hari jam 9 pagi)
+0 9 * * * /workspace/venv/bin/python /workspace/jalan_otomatis.py >> /workspace/cron.log 2>&1
+```
+
+### Troubleshooting Linux
+
+**Error: `python3-venv is not installed`**
+```bash
+sudo apt install python3-venv  # Ubuntu/Debian
+sudo dnf install python3-venv  # Fedora
+```
+
+**Error: `pip command not found`**
+```bash
+sudo apt install python3-pip  # Ubuntu/Debian
+```
+
+**Permission denied saat install**
+```bash
+# Jangan gunakan sudo dengan pip di venv!
+# Pastikan venv aktif terlebih dahulu
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
 ## 🚀 Instalasi
 
 ### 1. Clone Repository
