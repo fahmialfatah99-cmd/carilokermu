@@ -38,15 +38,37 @@ Sebelum menggunakan aplikasi ini, pastikan Anda telah menginstall:
 cd /workspace
 ```
 
-### 2. Install Dependencies
+### 2. Buat Virtual Environment (Rekomendasi untuk Linux)
 
-Install library Playwright:
+Menggunakan virtual environment sangat disarankan untuk mengisolasi dependensi proyek:
+
+```bash
+# Install virtualenv jika belum terinstall
+pip install virtualenv
+
+# Buat virtual environment dengan nama 'venv'
+python3 -m venv venv
+
+# Aktifkan virtual environment
+source venv/bin/activate
+```
+
+Setelah diaktifkan, prompt terminal akan berubah menjadi:
+```bash
+(venv) user@linux:~/workspace$
+```
+
+**Catatan**: Setiap kali Anda ingin menggunakan aplikasi ini, aktifkan terlebih dahulu virtual environment dengan perintah `source venv/bin/activate`
+
+### 3. Install Dependencies
+
+Install library Playwright dalam virtual environment:
 
 ```bash
 pip install playwright
 ```
 
-### 3. Install Browser Chromium
+### 4. Install Browser Chromium
 
 Playwright memerlukan browser untuk scraping:
 
@@ -54,15 +76,36 @@ Playwright memerlukan browser untuk scraping:
 playwright install chromium
 ```
 
+**Untuk Linux**: Jika terjadi error terkait dependencies sistem, install juga dependencies berikut:
+
+```bash
+# Untuk Ubuntu/Debian
+sudo apt-get update
+sudo apt-get install -y libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2
+
+# Untuk Fedora/RHEL
+sudo dnf install -y alsa-lib libatk-bridge2.0 libatk cups-libs libdrm libxkbcommon xorg-x11-server-Xwayland libXcomposite libXdamage libXfixes libXrandr libGBM libpango cairo glibc
+```
+
 ## 📖 Cara Menggunakan
 
-### Langkah 1: Jalankan Aplikasi
+### Langkah 1: Aktifkan Virtual Environment (Linux)
+
+Sebelum menjalankan aplikasi, pastikan virtual environment sudah aktif:
+
+```bash
+source venv/bin/activate
+```
+
+Anda akan melihat `(venv)` di awal prompt terminal.
+
+### Langkah 2: Jalankan Aplikasi
 
 ```bash
 python jalan_otomatis.py
 ```
 
-### Langkah 2: Pilih Kota
+### Langkah 3: Pilih Kota
 
 Aplikasi akan menampilkan daftar 30 kota populer. Masukkan nomor kota yang diinginkan, atau ketik `00` untuk input manual.
 
@@ -79,7 +122,7 @@ Aplikasi akan menampilkan daftar 30 kota populer. Masukkan nomor kota yang diing
 🏙️  Masukkan nomor kota (atau 00 untuk input manual): 
 ```
 
-### Langkah 3: Pilih Kategori Pekerjaan
+### Langkah 4: Pilih Kategori Pekerjaan
 
 Pilih dari 26+ kategori pekerjaan yang tersedia, atau input manual dengan mengetik `00`.
 
@@ -96,7 +139,7 @@ Pilih dari 26+ kategori pekerjaan yang tersedia, atau input manual dengan menget
 💼 Masukkan nomor kategori (atau 00 untuk input manual): 
 ```
 
-### Langkah 4: Atur Opsi Pencarian
+### Langkah 5: Atur Opsi Pencarian
 
 - **Jumlah Halaman**: 1-10 halaman (default: 3)
 - **Mode Debug**: Lihat browser berjalan (y/n, default: n)
@@ -108,11 +151,11 @@ Pilih dari 26+ kategori pekerjaan yang tersedia, atau input manual dengan menget
    Lihat browser berjalan? (y/n, default n): 
 ```
 
-### Langkah 5: Tunggu Proses Scraping
+### Langkah 6: Tunggu Proses Scraping
 
 Aplikasi akan menampilkan progress pencarian secara real-time.
 
-### Langkah 6: Lihat Hasil
+### Langkah 7: Lihat Hasil
 
 Setelah selesai, Anda akan melihat:
 - Ringkasan total lowongan ditemukan
@@ -121,7 +164,7 @@ Setelah selesai, Anda akan melihat:
 - Distribusi tipe pekerjaan
 - Preview 5 lowongan pertama
 
-### Langkah 7: Buka File CSV
+### Langkah 8: Buka File CSV
 
 Data tersimpan otomatis dengan format:
 ```
@@ -210,8 +253,17 @@ Buka file CSV dengan Excel, Google Sheets, atau aplikasi spreadsheet lainnya.
 
 ### Error: "playwright tidak ditemukan"
 ```bash
+# Pastikan virtual environment aktif
+source venv/bin/activate
 pip install playwright
 playwright install chromium
+```
+
+### Error: "ModuleNotFoundError: No module named 'playwright'"
+```bash
+# Aktifkan virtual environment terlebih dahulu
+source venv/bin/activate
+pip install playwright
 ```
 
 ### Error: "Timeout menunggu job cards"
@@ -229,14 +281,43 @@ playwright install chromium
 - Tunggu beberapa saat sebelum mencoba lagi
 - Kurangi kecepatan scraping dengan menambah delay
 
+### Error: "Missing dependencies di Linux"
+Install dependencies sistem yang diperlukan:
+```bash
+# Ubuntu/Debian
+sudo apt-get update
+sudo apt-get install -y libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2
+```
+
+### Deaktivasi Virtual Environment
+Jika ingin keluar dari virtual environment:
+```bash
+deactivate
+```
+
 ## 📝 Struktur File
 
 ```
 /workspace/
 ├── jalan_otomatis.py      # Script utama aplikasi
 ├── README.md              # Dokumentasi (file ini)
+├── venv/                  # Virtual environment (dibuat otomatis)
+│   ├── bin/
+│   │   ├── activate       # Script untuk aktifkan virtual environment
+│   │   ├── python         # Python interpreter dalam venv
+│   │   └── pip            # Pip dalam venv
+│   └── lib/
 └── loker_*.csv           # File output (dibuat otomatis)
 ```
+
+## 💡 Tips untuk Pengguna Linux
+
+1. **Selalu gunakan virtual environment** untuk mengisolasi dependensi proyek
+2. **Aktifkan venv setiap kali** ingin menjalankan aplikasi: `source venv/bin/activate`
+3. **Cek apakah venv aktif** dengan melihat ada `(venv)` di prompt terminal
+4. **Install dependencies sistem** jika playwright error saat install chromium
+5. **Gunakan mode debug** (`y`) jika mengalami masalah untuk melihat browser berjalan
+6. **Deaktivasi venv** dengan perintah `deactivate` jika sudah selesai
 
 ## 🔧 Kustomisasi
 
