@@ -1,11 +1,3 @@
-```
-# Compiled Python files
-*.pyc
-__pycache__/
+(cariloker.py is a source file, so no need to ignore it)
 
-# Logs
-*.log
-
-# Original rules preserved
-cariloker.log
-```
+(empty — output nothing)
