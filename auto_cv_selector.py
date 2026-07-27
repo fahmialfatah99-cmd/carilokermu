@@ -46,10 +46,30 @@ def load_lowongan():
     with open(file_terbaru, 'r', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         for row in reader:
-            if row.get('judul'):  # Skip baris kosong
+            # Support multiple column names for job title
+            judul = row.get('judul') or row.get('judul_lowongan') or row.get('title') or row.get('posisi')
+            if judul:  # Skip baris kosong
                 lowongan.append(row)
 
     return lowongan
+
+def get_field(loker, field_name, default=''):
+    """Helper untuk mengambil field dengan support multiple column names"""
+    # Mapping field names yang mungkin
+    field_mappings = {
+        'judul': ['judul', 'judul_lowongan', 'title', 'posisi', 'position'],
+        'perusahaan': ['perusahaan', 'company', 'nama_perusahaan'],
+        'lokasi': ['lokasi', 'location', 'kota'],
+        'gaji': ['gaji', 'salary', 'rentang_gaji'],
+        'tanggal_scrape': ['tanggal_scrape', 'tanggal_posting', 'posted_date', 'tanggal'],
+        'link': ['link', 'url', 'website', 'job_url']
+    }
+    
+    if field_name in field_mappings:
+        for key in field_mappings[field_name]:
+            if key in loker and loker[key]:
+                return loker[key]
+    return default
 
 def tampilkan_lowongan(lowongan):
     """Tampilkan daftar lowongan dengan format rapi"""
@@ -62,12 +82,12 @@ def tampilkan_lowongan(lowongan):
         return
 
     for i, loker in enumerate(lowongan, 1):
-        print(f"\n[{i}] {loker['judul']}")
-        print(f"    🏢 Perusahaan: {loker['perusahaan']}")
-        print(f"    📍 Lokasi: {loker['lokasi']}")
-        print(f"    💰 Gaji: {loker['gaji']}")
-        print(f"    📅 Scraped: {loker['tanggal_scrape']}")
-        print(f"    🔗 Link: {loker['link']}")
+        print(f"\n[{i}] {get_field(loker, 'judul', 'N/A')}")
+        print(f"    🏢 Perusahaan: {get_field(loker, 'perusahaan', 'N/A')}")
+        print(f"    📍 Lokasi: {get_field(loker, 'lokasi', 'N/A')}")
+        print(f"    💰 Gaji: {get_field(loker, 'gaji', 'N/A')}")
+        print(f"    📅 Scraped: {get_field(loker, 'tanggal_scrape', 'N/A')}")
+        print(f"    🔗 Link: {get_field(loker, 'link', 'N/A')}")
 
     print("\n" + "="*80)
 
