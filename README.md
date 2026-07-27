@@ -142,22 +142,75 @@ export CHROME_PATH=/usr/bin/chromium
 
 Berikut adalah panduan lengkap penggunaan dari awal hingga melamar otomatis:
 
-### Langkah 1: Cari Lowongan Kerja
-Jalankan scraper untuk menemukan lowongan sesuai keyword yang diinginkan.
+### **Langkah 1: Cari Lowongan Kerja (INTERAKTIF)**
+
+Script `main.py` sekarang memiliki menu interaktif untuk memilih lowongan langsung setelah scraping!
 
 ```bash
-# Format: python3 main.py "<keyword>" <jumlah_loker>
-python3 main.py "admin" 30
+python3 main.py
 ```
 
-**Output:**
-- File CSV berisi daftar lowongan (contoh: `loker_admin_20260727_160440.csv`)
-- File ini berisi judul, perusahaan, lokasi, gaji, dan **link lowongan**
+**Program akan memandu Anda melalui:**
+
+1. **Input URL website job portal** (contoh: `https://www.jobstreet.co.id`)
+2. **Input kata kunci pencarian** (contoh: `admin`, `data analyst`)
+3. **Input jumlah halaman** yang akan di-scrape (default: 3)
+4. **Menampilkan daftar lowongan** yang ditemukan
+5. **Memilih lowongan** untuk dilamar:
+   - Input nomor lowongan (pisahkan dengan koma untuk multiple)
+   - Ketik `all` untuk memilih semua
+   - Ketik `q` untuk keluar
+6. **Generate CV otomatis** (opsional) untuk lowongan terpilih
+
+**Contoh Sesi Lengkap:**
+```
+🔍 PENCARI LOWONGAN KERJA INTERAKTIF
+============================================================
+
+📌 Masukkan URL website job portal: https://www.jobstreet.co.id
+🔎 Kata kunci pencarian: admin
+📄 Jumlah maksimal halaman (default: 3): 3
+
+⏳ Mencari lowongan untuk 'admin'...
+
+✅ SELESAI!
+   Total lowongan ditemukan: 30
+   File hasil: loker_admin_20260727_160440.csv
+
+📋 DAFTAR LOWONGAN DITEMUKAN:
+------------------------------------------------------------
+  1. Staff Administrasi - PT Maju Jaya (Jakarta)
+  2. Admin Officer - CV Berkah Sentosa (Bandung)
+  3. Data Entry - Tech Solutions Indonesia (Surabaya)
+  ...
+
+🎯 PILIH LOWONGAN UNTUK DILAMAR
+============================================================
+➤ Pilihan Anda: 1,3,5
+✅ Berhasil memilih 3 lowongan
+
+📝 Lowongan terpilih disimpan di: selected_loker_admin_20260727_160440.csv
+
+📄 GENERATE CV OTOMATIS?
+============================================================
+Apakah Anda ingin generate CV? (y/n): y
+🔄 Menjalankan auto_cv_selector.py...
+```
+
+**Alternatif Command Line (tanpa menu interaktif):**
+Jika Anda ingin cara cepat tanpa menu interaktif, edit langsung di `main.py`:
+```python
+TARGET_SITE = "https://www.jobstreet.co.id"
+KEYWORD = "admin"
+MAX_PAGES = 3
+```
+Lalu jalankan: `python3 main.py`
 
 ---
 
-### Langkah 2: Pilih Lowongan & Generate CV (Interaktif)
-Gunakan script ini untuk memilih lowongan spesifik dari hasil scrape dan membuat CV yang disesuaikan.
+### **Langkah 2: Generate CV & Cover Letter (Opsional)**
+
+Jika Anda melewatkan generate CV di Langkah 1, atau ingin membuat CV baru:
 
 ```bash
 python3 auto_cv_selector.py
@@ -168,7 +221,7 @@ python3 auto_cv_selector.py
 2. Menampilkan daftar lowongan yang ditemukan
 3. **Anda diminta memilih nomor lowongan** yang ingin dilamar (bisa pilih beberapa)
 4. CV dan Cover Letter akan dibuat otomatis dalam format `.docx` dan `.pdf`
-5. File tersimpan di folder `output_cv/`
+5. File tersimpan di folder `carilokermu/`
 
 **Contoh Output:**
 ```
@@ -190,7 +243,8 @@ Masukkan pilihan Anda: 1,3,5
 
 ---
 
-### Langkah 3: Auto Apply ke Jobstreet
+### **Langkah 3: Auto Apply ke Jobstreet**
+
 Setelah memiliki daftar lowongan dan CV, jalankan auto apply untuk melamar secara otomatis.
 
 ```bash
@@ -198,13 +252,13 @@ python3 auto_apply_jobstreet.py
 ```
 
 **Cara Kerja:**
-1. Script akan membuka browser Chrome secara otomatis
+1. Script akan membuka browser Chromium secara otomatis
 2. Anda harus **login manual sekali** ke akun Jobstreet Anda
 3. Setelah login, script akan:
    - Membaca file CSV hasil scraping
    - Membuka satu per satu link lowongan
    - Mengisi form lamaran otomatis
-   - Upload CV (jika ada di folder `output_cv/` atau CV default)
+   - Upload CV (jika ada di folder `carilokermu/` atau CV default)
    - Submit aplikasi
 4. Progress ditampilkan di terminal
 
