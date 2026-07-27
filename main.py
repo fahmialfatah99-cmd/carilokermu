@@ -17,7 +17,7 @@ BASE_URL = "https://id.jobstreet.com/id/jobs?keyword={}&location={}".format(KEYW
 MAX_PAGES = 0  # 0 = Unlimited
 OUTPUT_FILE = f"loker_{KEYWORD.lower().replace(' ', '_')}.csv"
 HEADLESS = True  # True = tidak menampilkan browser, False = menampilkan browser
-DEBUG = False  # True = tampilkan detail debugging selector
+DEBUG = True  # True = tampilkan detail debugging selector
 
 # --- LOGGING SETUP ---
 logging.basicConfig(
@@ -87,13 +87,22 @@ class JobScraper:
             job_cards = soup.select('article[data-automation-id="jobCard"], div[data-automation-id="jobCard"]')
             
             if not job_cards:
-                # Fallback: coba selector alternatif
-                job_cards = soup.select('[data-automation="jobCardTitle"] >> .. >> .. >> ..')
-                
-            if not job_cards:
-                # Fallback terakhir: cari semua elemen dengan class yang mengandung 'job'
-                job_cards = soup.select('div[class*="JobCard"], article[class*="JobCard"], li[class*="job"]')
-                if DEBUG:
+                # Fallback: coba ambil parent dari jobCardTitle
+                title_elems = soup.select('[data-automation="jobCardTitle"]')
+                if title_elems:
+                    # Ambil parent terdekat yang merupakan container
+                    job_cards = []
+                    for elem in title_elems:
+                        parent = elem.find_parent(['article', 'div', 'li'])
+                        if parent:
+                            job_cards.append(parent)
+                else:
+                    job_cards = []
+                    
+                if not job_cards:
+                    job_cards = soup.select('div[class*="JobCard"], article[class*="JobCard"], li[class*="job"]')
+                    
+                if DEBUG and title_elems:
                     logger.warning(f"Selector utama tidak menemukan hasil, mencoba fallback. Ditemukan {len(job_cards)} elemen potensial.")
 
             if DEBUG:

@@ -63,7 +63,13 @@ class EasyJobScraper:
             
             # Jika tidak ketemu dengan selector spesifik, coba fallback
             if not cards:
-                cards = soup.select('[data-automation="jobCardTitle"] >> .. >> .. >> ..')
+                # Coba ambil parent dari jobCardTitle
+                title_elems = soup.select('[data-automation="jobCardTitle"]')
+                if title_elems:
+                    # Ambil parent terdekat yang merupakan container
+                    cards = [elem.find_parent(['article', 'div', 'li']) for elem in title_elems if elem.find_parent(['article', 'div', 'li'])]
+                else:
+                    cards = []
             
             # Fallback terakhir
             if not cards:
