@@ -121,11 +121,96 @@ sudo dnf install alsa-lib atk cups-libs gtk3 libXcomposite libXdamage libXext li
 xcode-select --install
 ```
 
+---
+
 ## 📖 Cara Penggunaan
 
-### 🎯 Contoh: Cari Lowongan Administrasi di Jakarta Selatan
+### 🎯 CARA MUDAH: Menggunakan jalan_otomatis.py (RECOMMENDED!)
 
-Untuk mencari lowongan kerja **Administrasi** di **Indonesia** (khususnya **Jakarta Selatan**) dari **Jobstreet**, gunakan perintah berikut:
+**Tidak perlu edit file apapun!** Cukup jalankan script dan jawab pertanyaan yang muncul.
+
+#### Langkah-langkah:
+
+1. **Jalankan script:**
+
+   **Windows:**
+   ```cmd
+   python jalan_otomatis.py
+   ```
+
+   **Linux/macOS:**
+   ```bash
+   python3 jalan_otomatis.py
+   ```
+
+2. **Jawab pertanyaan yang muncul di layar:**
+
+   ```
+   🔍  JOB SCRAPER OTOMATIS - Pencari Lowongan Kerja
+   ======================================================================
+   
+   Jawab pertanyaan berikut untuk memulai scraping:
+   
+   Posisi apa yang ingin dicari? []: Administrasi
+   Lokasi pencarian (contoh: Jakarta-Selatan-Jakarta-Raya)? []: Jakarta-Selatan-Jakarta-Raya
+   Berapa halaman yang ingin discrape? [1]: 3
+   Ingin melihat browser berjalan? (y/n) [n]: n
+   Nama file output (kosongkan untuk auto-generate) [loker_administrasi_jakarta-selatan-jakarta-raya_20240115_103000.csv]: 
+   
+   ----------------------------------------------------------------------
+   Konfirmasi pengaturan:
+     • Posisi: Administrasi
+     • Lokasi: Jakarta-Selatan-Jakarta-Raya
+     • Halaman: 3
+     • Browser: Tersembunyi
+     • File output: loker_administrasi_jakarta-selatan-jakarta-raya_20240115_103000.csv
+   ----------------------------------------------------------------------
+   
+   Lanjutkan scraping? (y/n) [y]: y
+   ```
+
+3. **Tunggu proses scraping selesai**
+
+4. **Hasil akan otomatis tersimpan dalam file CSV!**
+
+#### Contoh Lengkap: Cari Lowongan Administrasi di Jakarta Selatan
+
+Misalnya Anda ingin mencari lowongan **Administrasi** di **Jakarta Selatan** dari Jobstreet dengan URL:
+`https://id.jobstreet.com/id/jobs/in-Jakarta-Selatan-Jakarta-Raya`
+
+**Langkah 1:** Jalankan script
+```bash
+python3 jalan_otomatis.py
+```
+
+**Langkah 2:** Isi pertanyaan:
+- Posisi: `Administrasi`
+- Lokasi: `Jakarta-Selatan-Jakarta-Raya`
+- Halaman: `3` (atau sesuai keinginan)
+- Lihat browser: `n` (tidak perlu lihat browser)
+- Nama file: tekan Enter (auto-generate)
+- Konfirmasi: `y`
+
+**Langkah 3:** Hasil akan tersimpan di file seperti:
+```
+loker_administrasi_jakarta-selatan-jakarta-raya_20240115_103000.csv
+```
+
+**Keuntungan menggunakan jalan_otomatis.py:**
+✅ Tidak perlu edit file apapun
+✅ Interface interaktif dengan pertanyaan mudah
+✅ Auto-generate nama file
+✅ Konfirmasi sebelum scraping
+✅ Ringkasan hasil otomatis
+✅ Error handling yang baik
+
+---
+
+### 🛠️ CARA LANJUTAN: Menggunakan cariloker.py (CLI Mode)
+
+Untuk pengguna advanced yang ingin lebih banyak kontrol melalui command line arguments.
+
+#### Contoh: Cari Lowongan Administrasi di Jakarta Selatan
 
 #### **Windows (Command Prompt):**
 ```cmd
@@ -143,8 +228,6 @@ python3 cariloker.py -k "Administrasi" -u "https://id.jobstreet.com/id/jobs/in-J
 - `-f csv` : Format output (bisa diganti `json` atau `excel`)
 
 Hasil akan disimpan dalam file CSV seperti: `hasil_loker_Administrasi_20240115_103000.csv`
-
----
 
 ### Penggunaan Dasar (Command Line)
 
