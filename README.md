@@ -33,14 +33,20 @@ git clone https://github.com/username/carilokermu.git
 cd carilokermu
 ```
 
-### 2. Buat Virtual Environment (Disarankan)
+### 2. Buat Virtual Environment (WAJIB!)
 
 Virtual environment membuat dependencies terisolasi dan tidak mengganggu sistem utama.
 
-#### **Windows (CMD/PowerShell)**
-```bash
+#### **Windows (CMD)**
+```cmd
 python -m venv venv
 venv\Scripts\activate
+```
+
+#### **Windows (PowerShell)**
+```powershell
+python -m venv venv
+venv\Scripts\Activate.ps1
 ```
 
 #### **macOS / Linux**
@@ -152,7 +158,7 @@ loker_{posisi}_{lokasi}_{tanggal_waktu}.csv
 
 | Masalah | Solusi |
 |---------|--------|
-| `ModuleNotFoundError: No module named 'playwright'` | Jalankan: `pip install playwright playwright-stealth` |
+| `ModuleNotFoundError: No module named 'playwright'` | Pastikan virtual environment aktif, lalu jalankan: `pip install -r requirements.txt` |
 | `Playwright tidak terinstall` | Jalankan: `playwright install chromium` |
 | Browser tidak terbuka | Pastikan langkah install Chromium sudah dilakukan |
 | CSV kosong | Coba keyword lain, tambah halaman, atau cek koneksi internet |
@@ -164,10 +170,12 @@ loker_{posisi}_{lokasi}_{tanggal_waktu}.csv
 - Jika `pip` tidak dikenali, gunakan: `py -m pip install -r requirements.txt`
 - Pastikan Python ditambahkan ke PATH
 - Gunakan PowerShell atau CMD sebagai administrator jika ada error permission
+- Jika ada error saat aktivasi venv di PowerShell, jalankan: `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
 
 #### **macOS**
 - Jika ada error certificate, jalankan: `/Applications/Python\ 3.x/Install\ Certificates.command`
 - Gunakan `python3` bukan `python`
+- Jika ada error permission, tambahkan `sudo` di depan command
 
 #### **Linux (Ubuntu/Debian)**
 - Install dependencies sistem: `sudo apt-get install -y libgbm1 libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libpango-1.0-0 libcairo2 libglib2.0-0 libdrm2 libdbus-1-3 libatspi2.0-0`
