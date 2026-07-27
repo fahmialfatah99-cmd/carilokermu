@@ -1,4 +1,5 @@
 import random
+import platform
 from fake_useragent import UserAgent
 from scrapy import signals
 
@@ -19,7 +20,17 @@ class StealthMiddleware:
             '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"'
         )
         request.headers["sec-ch-ua-mobile"] = "?0"
-        request.headers["sec-ch-ua-platform"] = '"Windows"'
+        
+        # Detect OS and set appropriate platform
+        current_os = platform.system()
+        if current_os == "Linux":
+            os_platform = '"Linux"'
+        elif current_os == "Darwin":
+            os_platform = '"macOS"'
+        else:
+            os_platform = '"Windows"'
+        
+        request.headers["sec-ch-ua-platform"] = os_platform
         request.headers["sec-fetch-dest"] = "document"
         request.headers["sec-fetch-mode"] = "navigate"
         request.headers["sec-fetch-user"] = "?1"
