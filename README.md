@@ -66,20 +66,37 @@ python3 main.py "admin" 30
 
 ---
 
-### Langkah 2: Generate CV & Cover Letter (Opsional tapi Disarankan)
-Gunakan script ini untuk memilih lowongan dari hasil scrape dan membuat CV yang disesuaikan.
+### Langkah 2: Pilih Lowongan & Generate CV (Interaktif)
+Gunakan script ini untuk memilih lowongan spesifik dari hasil scrape dan membuat CV yang disesuaikan.
 
 ```bash
 python3 auto_cv_selector.py
 ```
 
-**Proses:**
+**Proses Interaktif:**
 1. Script akan membaca file CSV hasil scraping terbaru
-2. Anda diminta memilih nomor lowongan yang ingin dilamar
-3. CV dan Cover Letter akan dibuat otomatis dalam format `.docx` dan `.pdf`
-4. File tersimpan di folder `output_cv/`
+2. Menampilkan daftar lowongan yang ditemukan
+3. **Anda diminta memilih nomor lowongan** yang ingin dilamar (bisa pilih beberapa)
+4. CV dan Cover Letter akan dibuat otomatis dalam format `.docx` dan `.pdf`
+5. File tersimpan di folder `output_cv/`
 
-**Tips:** Jika ingin melamar banyak lowongan sekaligus, Anda bisa skip langkah ini dan gunakan CV standar Anda.
+**Contoh Output:**
+```
+Ditemukan 30 lowongan dari file: loker_admin_20260727_160440.csv
+
+Pilih lowongan yang ingin dilamar (ketik nomor, pisahkan dengan koma):
+1. Admin Staff - PT. Sejahtera
+2. Administrative Assistant - CV. Maju Jaya
+3. Data Entry - Tbk. Global Corp
+...
+
+Masukkan pilihan Anda: 1,3,5
+✅ CV berhasil dibuat untuk 3 lowongan terpilih!
+```
+
+**Tips:** 
+- Jika ingin melamar semua lowongan, skip langkah ini dan gunakan CV default
+- Gunakan langkah ini untuk melamar ke posisi favorit dengan CV yang lebih targeted
 
 ---
 
@@ -179,15 +196,17 @@ python3 main.py "admin" 10
 python3 auto_apply_jobstreet.py
 ```
 
-### Skenario 2: Lamar dengan CV Custom
+### Skenario 2: Pilih Lowongan Favorit & Generate CV Custom
 ```bash
 # 1. Cari 20 loker
 python3 main.py "staff" 20
 
-# 2. Pilih 5 loker terbaik & generate CV
+# 2. Jalankan selector untuk memilih lowongan favorit secara interaktif
+#    Script akan menampilkan daftar dan Anda pilih nomor yang diinginkan
 python3 auto_cv_selector.py
+#    >> Masukkan pilihan: 1,3,5 (pilih 3 lowongan terbaik)
 
-# 3. Auto apply dengan CV custom
+# 3. Auto apply dengan CV custom yang sudah dibuat
 python3 auto_apply_jobstreet.py
 ```
 
@@ -198,7 +217,19 @@ python3 main.py "marketing" 50
 
 # 2. Buka CSV di Excel untuk analisis
 # 3. Filter manual loker yang sesuai
-# 4. Auto apply hanya untuk yang terpilih
+# 4. Gunakan auto_cv_selector.py untuk pilih yang terbaik
+python3 auto_cv_selector.py
+
+# 5. Auto apply hanya untuk yang terpilih
+python3 auto_apply_jobstreet.py
+```
+
+### Skenario 4: Bulk Apply dengan Filter Perusahaan
+```bash
+# 1. Cari semua loker di perusahaan target
+python3 main.py "admin" 50
+
+# 2. Auto apply dengan filter nama perusahaan
 python3 auto_apply_jobstreet.py --filter "PT. Perusahaan Besar"
 ```
 
