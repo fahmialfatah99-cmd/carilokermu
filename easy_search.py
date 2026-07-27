@@ -58,10 +58,14 @@ class EasyJobScraper:
             content = await self.page.content()
             soup = BeautifulSoup(content, 'lxml')
             
-            # Selector umum (fleksibel)
-            cards = soup.select('article, div[data-job-id], li[class*="job"], div[class*="card"]')
+            # Selector khusus JobStreet Indonesia (updated 2024)
+            cards = soup.select('article[data-automation-id="jobCard"], div[data-automation-id="jobCard"]')
             
-            # Jika tidak ketemu dengan selector spesifik, coba cari link yang mengandung '/job/'
+            # Jika tidak ketemu dengan selector spesifik, coba fallback
+            if not cards:
+                cards = soup.select('[data-automation="jobCardTitle"] >> .. >> .. >> ..')
+            
+            # Fallback terakhir
             if not cards:
                 links = soup.select('a[href*="/job/"]')
                 for link in links:
@@ -71,6 +75,7 @@ class EasyJobScraper:
                             "Judul": title,
                             "Perusahaan": "-",
                             "Lokasi": self.location,
+                            "Gaji": "Informasi tidak tersedia",
                             "Link": urljoin(url, link.get('href', '')),
                             "Sumber": "jobstreet"
                         })
@@ -78,11 +83,12 @@ class EasyJobScraper:
 
             for card in cards:
                 try:
-                    title_el = card.select_one('h1, h2, h3, a[class*="title"], span[class*="title"]')
-                    comp_el = card.select_one('span[class*="company"], div[class*="company"]')
-                    loc_el = card.select_one('span[class*="location"], div[class*="location"]')
-                    salary_el = card.select_one('span[class*="salary"], div[class*="salary"], span[class*="remuneration"]')
-                    link_el = card.select_one('a[href]')
+                    # Selector spesifik JobStreet (prioritas data-automation)
+                    title_el = card.select_one('[data-automation="jobCardTitle"], a[data-automation="jobCardTitle"], h1, h2, h3, a[class*="title"]')
+                    comp_el = card.select_one('[data-automation="jobCardCompany"], span[data-automation="jobCardCompany"], div[class*="company"], span[class*="company"]')
+                    loc_el = card.select_one('[data-automation="jobCardLocation"], span[data-automation="jobCardLocation"], div[class*="location"]')
+                    salary_el = card.select_one('[data-automation="jobCardSalary"], span[data-automation="jobCardSalary"], div[class*="salary"], span[class*="remuneration"]')
+                    link_el = card.select_one('a[data-automation="jobCardTitle"], a[href]')
 
                     title = title_el.get_text(strip=True) if title_el else "Tidak ada judul"
                     company = comp_el.get_text(strip=True) if comp_el else "-"
