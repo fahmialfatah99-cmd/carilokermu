@@ -1,1 +1,44 @@
-Nothing to output - the file changes contain only a source/config file (README.md) with no build artifacts, dependencies, or temp files that need to be ignored.
+```
+# Compiled and build artifacts
+*.pyc
+__pycache__/
+
+# Dependencies
+.venv/
+venv/
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+
+# Environment
+.env
+.env.local
+*.env.*
+
+# Editors
+.vscode/
+.idea/
+
+# Coverage reports
+.coverage
+coverage/
+htmlcov/
+
+# Python specific
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Build directories
+build/
+dist/
+*.egg-info/
+
+# Testing
+.pytest_cache/
+.mypy_cache/
+
+```
