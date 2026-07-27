@@ -38,7 +38,7 @@ cd carilokermu
 
 ### 2. Install Dependencies
 
-#### **Linux (Ubuntu/Debian/Mint)**
+#### **Linux - Menggunakan Chromium (Rekomendasi)**
 ```bash
 # Update package list
 sudo apt update
@@ -46,7 +46,31 @@ sudo apt update
 # Install Python pip jika belum ada
 sudo apt install python3-pip -y
 
-# Install Chrome browser (jika belum ada)
+# Install Chromium browser dan driver
+sudo apt install chromium-browser chromium-chromedriver -y
+
+# Untuk Ubuntu 22.04+ atau sistem dengan snap
+# sudo snap install chromium
+
+# Install dependencies Python
+pip3 install -r requirements.txt
+
+# Verifikasi instalasi
+python3 main.py --help
+
+# Cek versi Chromium
+chromium --version
+```
+
+#### **Linux - Menggunakan Google Chrome**
+```bash
+# Update package list
+sudo apt update
+
+# Install Python pip jika belum ada
+sudo apt install python3-pip -y
+
+# Install Google Chrome browser
 wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
 sudo dpkg -i google-chrome-stable_current_amd64.deb
 sudo apt-get install -f -y  # Fix dependencies jika ada error
@@ -56,14 +80,32 @@ pip3 install -r requirements.txt
 
 # Verifikasi instalasi
 python3 main.py --help
+
+# Cek versi Chrome
+google-chrome --version
 ```
 
-#### **Linux (Fedora/RHEL/CentOS)**
+#### **Linux (Fedora/RHEL/CentOS) - Chromium**
 ```bash
 # Install Python pip
 sudo dnf install python3-pip -y
 
-# Install Chrome browser
+# Install Chromium browser
+sudo dnf install chromium chromium-chromedriver -y
+
+# Install dependencies Python
+pip3 install -r requirements.txt
+
+# Verifikasi instalasi
+python3 main.py --help
+```
+
+#### **Linux (Fedora/RHEL/CentOS) - Chrome**
+```bash
+# Install Python pip
+sudo dnf install python3-pip -y
+
+# Install Google Chrome browser
 sudo dnf install https://dl.google.com/linux/chrome/rpm/stable/x86_64/google-chrome-stable-1*.rpm -y
 
 # Install dependencies Python
@@ -108,11 +150,37 @@ python main.py --help
 
 | Sistem Operasi | Masalah Umum | Solusi |
 |----------------|--------------|--------|
-| **Linux** | `Permission denied` saat install | Gunakan `sudo` atau `--user` flag: `pip3 install --user -r requirements.txt` |
-| **Linux** | Chrome tidak ditemukan | Pastikan path Chrome: `/usr/bin/google-chrome` |
+| **Linux (Chromium)** | `chromium` tidak ditemukan | Install: `sudo apt install chromium-browser chromium-chromedriver -y` |
+| **Linux (Chromium)** | ChromeDriver version mismatch | Pastikan versi chromedriver sesuai: `chromium-chromedriver --version` |
+| **Linux (Chrome)** | `Permission denied` saat install | Gunakan `sudo` atau `--user` flag: `pip3 install --user -r requirements.txt` |
+| **Linux (Chrome)** | Chrome tidak ditemukan | Pastikan path Chrome: `/usr/bin/google-chrome` |
+| **Linux (Snap)** | Chromium tidak bisa akses folder | Berikan permission: `sudo snap connect chromium:home` |
 | **macOS** | Certificate verify failed | Jalankan: `/Applications/Python\ 3.x/Install\ Certificates.command` |
 | **Windows** | `pip` tidak dikenali | Tambahkan Python ke PATH atau gunakan `py -m pip` |
 | **Semua** | Module `docx` tidak ditemukan | Jalankan: `pip install python-docx reportlab` |
+
+#### Tips Khusus Linux Users dengan Chromium
+
+```bash
+# Jika Chromium tidak mau jalan sebagai root
+export CHROME_ALLOW_ROOT=1
+
+# Jika ada masalah permission pada folder output
+chmod -R 755 /path/to/carilokermu/
+
+# Cek apakah Chromium terinstall dengan benar
+chromium --version
+
+# Cek chromedriver
+chromium-chromedriver --version
+
+# Jika menggunakan Snap (Ubuntu 22.04+)
+# Hubungkan permission home agar bisa akses file
+sudo snap connect chromium:home
+
+# Set path browser secara manual jika diperlukan
+export CHROME_PATH=/usr/bin/chromium
+```
 
 ---
 
@@ -258,28 +326,41 @@ Edit file `config/search_config.json` untuk set lokasi default:
 
 | Masalah | Solusi |
 |---------|--------|
-| Browser tidak terbuka saat auto apply | Pastikan Chrome terinstall dan tertutup sebelum menjalankan script |
+| Browser tidak terbuka saat auto apply | Pastikan Chrome/Chromium terinstall dan tertutup sebelum menjalankan script |
 | Login Jobstreet gagal | Clear cookie browser atau gunakan mode incognito manual |
 | CSV kosong/tidak ada data | Coba ubah keyword, tambah jumlah loker, atau cek koneksi internet |
 | Auto apply stuck di captcha | Selesaikan captcha manual, script akan lanjut otomatis setelah 30 detik |
 | CV tidak tergenerate | Cek folder `output_cv/` dan pastikan `config/user_profile.json` sudah diisi |
 | Error `Connection Reset` | Tunggu 5-10 menit lalu jalankan lagi (rate limiting) |
 | Script terlalu lambat | Normal, script memberi delay 3-5 detik antar lamaran untuk hindari blokir |
+| Chromium tidak bisa akses folder home | Jalankan: `sudo snap connect chromium:home` (untuk Snap users) |
+| Versi ChromeDriver tidak match | Update chromedriver: `sudo apt install --reinstall chromium-chromedriver` |
 
-### Tips untuk Linux Users
+### Tips untuk Linux Users (Chrome & Chromium)
 
 ```bash
-# Jika Chrome tidak mau jalan sebagai root
+# Jika browser tidak mau jalan sebagai root
 export CHROME_ALLOW_ROOT=1
 
 # Jika ada masalah permission pada folder output
 chmod -R 755 /path/to/carilokermu/
 
-# Cek apakah Chrome terinstall dengan benar
-google-chrome --version
+# Cek apakah browser terinstall dengan benar
+chromium --version      # Untuk Chromium
+google-chrome --version # Untuk Chrome
 
 # Install chromedriver jika diperlukan
-sudo apt install chromium-chromedriver -y
+sudo apt install chromium-chromedriver -y  # Untuk Chromium
+# atau
+wget https://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_*.deb  # Untuk Chrome
+
+# Set path browser secara manual jika script tidak menemukannya
+export CHROME_PATH=/usr/bin/chromium
+# atau
+export CHROME_PATH=/usr/bin/google-chrome
+
+# Untuk Snap users (Ubuntu 22.04+)
+sudo snap connect chromium:home
 ```
 
 ---
