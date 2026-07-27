@@ -4,8 +4,10 @@ import time
 import random
 import logging
 import csv
+import json
 from datetime import datetime
 from urllib.parse import urljoin
+from pathlib import Path
 
 # Setup Logging
 logging.basicConfig(
@@ -59,6 +61,30 @@ def type_slowly(page, selector, text, delay=0.1):
         element.type(char)
         time.sleep(delay + random.uniform(0, 0.05))
 
+def save_cookies(context, filepath="carilokermu/jobstreet_cookies.json"):
+    """Simpan cookies ke file"""
+    try:
+        cookies = context.cookies()
+        with open(filepath, 'w') as f:
+            json.dump(cookies, f)
+        logger.info(f"✅ Cookies disimpan ke {filepath}")
+        return True
+    except Exception as e:
+        logger.error(f"Gagal menyimpan cookies: {e}")
+        return False
+
+def load_cookies(filepath="carilokermu/jobstreet_cookies.json"):
+    """Load cookies dari file"""
+    try:
+        if os.path.exists(filepath):
+            with open(filepath, 'r') as f:
+                cookies = json.load(f)
+            logger.info(f"📋 Cookies dimuat dari {filepath}")
+            return cookies
+    except Exception as e:
+        logger.error(f"Gagal memuat cookies: {e}")
+    return None
+
 def main():
     print("=" * 60)
     print("🔍 PENCARI LOWONGAN KERJA OTOMATIS (JOBSTREET)")
@@ -103,10 +129,19 @@ def main():
             logger.info("Pastikan Chromium terinstall: playwright install chromium")
             return
 
+        # Pastikan folder carilokermu ada
+        os.makedirs("carilokermu", exist_ok=True)
+        
         context = browser.new_context(
             viewport={'width': 1280, 'height': 720},
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         )
+        
+        # Load cookies jika ada (untuk menghindari login ulang)
+        cookies = load_cookies()
+        if cookies:
+            context.add_cookies(cookies)
+            logger.info("✅ Menggunakan cookies tersimpan (tidak perlu login ulang)")
         
         page = context.new_page()
         
@@ -117,7 +152,72 @@ def main():
             # 1. Buka Jobstreet
             print("🌐 Membuka Jobstreet.co.id...")
             page.goto("https://www.jobstreet.co.id/", wait_until="domcontentloaded")
-            time.sleep(3) # Tunggu loading awal
+            time.sleep(5) # Tunggu loading awal lebih lama untuk memastikan session
+            
+            # Cek apakah sudah login dengan melihat elemen user profile
+            is_logged_in = False
+            try:
+                # Cek beberapa selector yang menandakan user sudah login
+                profile_selectors = [
+                    '[data-automation="userAvatar"]',
+                    '[data-testid="user-avatar"]',
+                    'img[alt*="profile"]',
+                    'button[class*="profile"]'
+                ]
+                for selector in profile_selectors:
+                    if page.query_selector(selector):
+                        is_logged_in = True
+                        logger.info("✅ Anda sudah login!")
+                        break
+            except:
+                pass
+            
+            if not is_logged_in:
+                print("\n" + "=" * 60)
+                print("⚠️ ANDA BELUM LOGIN KE JOBSTREET")
+                print("=" * 60)
+                print("\n📋 SILAKAN LOGIN MANUAL DI BROWSER YANG TERBUKA")
+                print("   - Masukkan email dan password Anda")
+                print("   - Klik tombol Login")
+                print("   - Tunggu sampai halaman utama Jobstreet muncul")
+                print("\n⏳ Program akan menunggu hingga 120 detik...")
+                print("-" * 60)
+                
+                # Tunggu user login manual (maksimal 120 detik)
+                wait_time = 0
+                max_wait = 120
+                check_interval = 3
+                
+                while wait_time < max_wait:
+                    time.sleep(check_interval)
+                    wait_time += check_interval
+                    
+                    # Cek lagi apakah sudah login
+                    try:
+                        for selector in profile_selectors:
+                            if page.query_selector(selector):
+                                is_logged_in = True
+                                logger.info("✅ Login berhasil terdeteksi!")
+                                break
+                    except:
+                        pass
+                    
+                    if is_logged_in:
+                        break
+                    
+                    if wait_time % 15 == 0:
+                        print(f"   ⏳ Menunggu login... ({wait_time}/{max_wait} detik)")
+                
+                if not is_logged_in:
+                    logger.warning("⚠️ Waktu tunggu login habis. Melanjutkan tanpa login penuh.")
+                    logger.warning("   Beberapa fitur mungkin terbatas.")
+            
+            # Simpan cookies setelah login berhasil
+            if is_logged_in:
+                save_cookies(context)
+            
+            # Beri waktu tambahan setelah login
+            time.sleep(2)
 
             # 2. Cari Input Field & Ketik Otomatis
             search_selector = 'input[placeholder*="pekerjaan"], input[placeholder*="job"], input[data-automation="jobTitleSearch"]'
