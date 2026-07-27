@@ -17,15 +17,38 @@ logger = logging.getLogger(__name__)
 
 try:
     from playwright.sync_api import sync_playwright
-    # Handle perbedaan nama fungsi di versi playwright-stealth yang berbeda
-    try:
-        from playwright_stealth import stealth_sync
-    except ImportError:
-        from playwright_stealth import stealth as stealth_sync
 except ImportError:
     logger.error("Playwright tidak terinstall. Jalankan: pip install playwright playwright-stealth")
     logger.error("Lalu jalankan: playwright install chromium")
     sys.exit(1)
+
+# Import stealth dengan kompatibilitas semua versi
+def apply_stealth(page):
+    """Apply stealth mode dengan kompatibilitas semua versi playwright-stealth"""
+    try:
+        # Versi lama (< 2.0): stealth_sync(page)
+        from playwright_stealth import stealth_sync
+        if callable(stealth_sync):
+            stealth_sync(page)
+            return True
+    except (ImportError, TypeError):
+        pass
+    
+    try:
+        # Versi baru (>= 2.0): stealth(page) atau import berbeda
+        import playwright_stealth
+        if hasattr(playwright_stealth, 'stealth') and callable(playwright_stealth.stealth):
+            playwright_stealth.stealth(page)
+            return True
+        # Coba langsung dari modul
+        if callable(getattr(playwright_stealth, '__call__', None)):
+            playwright_stealth(page)
+            return True
+    except Exception:
+        pass
+    
+    logger.warning("Stealth mode tidak dapat diaktifkan. Lanjut tanpa stealth.")
+    return False
 
 def type_slowly(page, selector, text, delay=0.1):
     """Mengetik teks karakter per karakter dengan delay natural"""
@@ -87,17 +110,8 @@ def main():
         
         page = context.new_page()
         
-        # Apply Stealth (Anti-Deteksi Bot)
-        try:
-            from playwright_stealth import stealth_sync
-            stealth_sync(page)
-        except (TypeError, ImportError):
-            # Fallback jika versi library berbeda
-            try:
-                from playwright_stealth import stealth
-                stealth(page)
-            except Exception:
-                pass  # Skip stealth jika gagal total
+        # Apply Stealth (Anti-Deteksi Bot) - Menggunakan fungsi kompatibel
+        apply_stealth(page)
 
         try:
             # 1. Buka Jobstreet
