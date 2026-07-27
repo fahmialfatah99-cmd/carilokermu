@@ -1,1 +1,4 @@
-playwright==1.40.0
+scrapy
+scrapy-playwright
+playwright
+fake-useragent
