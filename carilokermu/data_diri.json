@@ -1,0 +1,39 @@
+{
+  "nama_lengkap": "Andi Wijaya",
+  "email": "andi.wijaya@email.com",
+  "telepon": "081987654321",
+  "alamat": "Jl. Sudirman No. 45",
+  "kota": "Bandung",
+  "tanggal_lahir": "20/08/1990",
+  "linkedin": "https://linkedin.com/in/andiwijaya",
+  "portfolio": "",
+  "pendidikan_nama": "Institut Teknologi Bandung",
+  "pendidikan_jurusan": "Teknik Informatika",
+  "pendidikan_gelar": "S.Kom",
+  "pendidikan_tahun_masuk": "2015",
+  "pendidikan_tahun_lulus": "2019",
+  "pendidikan_ipk": "3.85",
+  "pengalaman_jumlah": "2",
+  "pengalaman": [
+    {
+      "posisi": "Software Developer",
+      "perusahaan": "PT Digital Solutions",
+      "lokasi": "Bandung",
+      "tanggal_mulai": "06/2019",
+      "tanggal_selesai": "sekarang",
+      "deskripsi": "Mengembangkan aplikasi mobile,Mengelola database,Code review dan testing"
+    },
+    {
+      "posisi": "Junior Developer",
+      "perusahaan": "CV Tech Innovations",
+      "lokasi": "Jakarta",
+      "tanggal_mulai": "01/2019",
+      "tanggal_selesai": "05/2019",
+      "deskripsi": "Membuat website company profile,Maintenance server"
+    }
+  ],
+  "keahlian_teknis": "Python, Java, JavaScript, SQL, Git",
+  "keahlian_soft_skill": "Teamwork, Problem Solving, Communication",
+  "bahasa": "Indonesia (Native), Inggris (Fluent)",
+  "sertifikasi": "Oracle Certified Java Programmer, AWS Cloud Practitioner"
+}
