@@ -1,345 +1,306 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-Scraper Lowongan Kerja (Job Scraper)
-
-Script ini menggunakan Playwright untuk melakukan scraping lowongan kerja
-dari berbagai situs job portal. Dilengkapi dengan stealth mode untuk menghindari deteksi bot.
+Carilokermu - Pencari Kerja Otomatis Khusus Jobstreet
+Prinsip: Cepat, Spesifik Jobstreet, Interaktif, Virtual Environment
 """
 
-import pandas as pd
-from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
-from playwright_stealth import stealth
-from selectolax.parser import HTMLParser
-from typing import List, Dict, Optional
+import os
+import sys
+import csv
+import time
+import random
 import logging
+from datetime import datetime
+from urllib.parse import urljoin, quote_plus
 
-# Konfigurasi logging
+# Setup Logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)]
 )
 logger = logging.getLogger(__name__)
 
+try:
+    from playwright.sync_api import sync_playwright
+    from playwright_stealth import stealth_sync
+except ImportError:
+    logger.error("Playwright tidak terinstall. Jalankan: pip install playwright playwright-stealth")
+    sys.exit(1)
 
-def scrape_loker(url_target: str, keyword: str, max_pages: int = 3) -> List[Dict[str, str]]:
-    """
-    Scraping lowongan kerja dari situs target.
+# Konfigurasi Khusus Jobstreet
+JOBSTREET_BASE_URL = "https://www.jobstreet.co.id"
+JOBSTREET_SEARCH_URL = "https://www.jobstreet.co.id/id/pekerjaan"
+
+# CSS Selectors Khusus Jobstreet (Update sesuai struktur terbaru)
+SELECTORS = {
+    'job_card': 'article[data-jk] div[data-automation="jobTitle"], a[data-automation="jobTitle"], div[data-automation="jobListing"]',
+    'job_title': 'span[data-automation="jobTitle"], h1[data-automation="jobTitle"]',
+    'company_name': 'span[data-automation="jobCompany"], a[data-automation="jobCompany"]',
+    'location': 'span[data-automation="jobLocation"]',
+    'salary': 'span[data-automation="jobSalary"]',
+    'description': 'div[data-automation="jobDescription"], section[data-automation="jobDescription"]',
+    'next_page': 'a[aria-label="Next Page"], button:contains("Next"), a.pagination-next',
+    'error_msg': 'div[class*="error"], div[class*="no-result"]'
+}
+
+CITIES = [
+    "Jakarta", "Bandung", "Surabaya", "Yogyakarta", "Semarang",
+    "Medan", "Bali", "Makassar", "Palembang", "Tangerang",
+    "Bekasi", "Depok", "Batam", "Malang", "Balikpapan"
+]
+
+def get_user_input():
+    """Menu interaktif khusus Jobstreet"""
+    print("\n" + "="*60)
+    print("🔍 PENCARI LOWONGAN KERJA - KHUSUS JOBSTREET")
+    print("="*60)
     
-    Args:
-        url_target: URL dasar situs lowongan kerja (contoh: https://example.com)
-        keyword: Kata kunci pencarian (posisi/jabatan)
-        max_pages: Jumlah maksimal halaman yang akan di-scrape
+    # Pilihan Kota
+    print("\n📍 Pilih Lokasi:")
+    for i, city in enumerate(CITIES, 1):
+        print(f"   {i}. {city}")
+    print(f"   0. Semua Lokasi")
     
-    Returns:
-        List of dict berisi data lowongan dengan key: Posisi, Perusahaan, Link, Lokasi
-    """
-    logger.info(f"Mencari lowongan untuk: {keyword}...")
-    data_loker = []
+    while True:
+        try:
+            city_choice = input("\nMasukkan nomor lokasi (default: 0): ").strip()
+            if city_choice == "" or city_choice == "0":
+                location = ""
+                break
+            elif city_choice.isdigit() and 1 <= int(city_choice) <= len(CITIES):
+                location = CITIES[int(city_choice)-1]
+                break
+            else:
+                print("❌ Pilihan tidak valid. Masukkan angka 0-{}.".format(len(CITIES)))
+        except KeyboardInterrupt:
+            print("\n\nDibatalkan oleh pengguna.")
+            sys.exit(0)
+
+    # Keyword
+    while True:
+        keyword = input("\n💼 Kata kunci pekerjaan (contoh: Admin, Staff, IT): ").strip()
+        if keyword:
+            break
+        print("❌ Kata kunci tidak boleh kosong.")
+
+    # Jumlah Halaman
+    while True:
+        try:
+            pages = input("\n📄 Jumlah halaman (default: 3, maks 10): ").strip()
+            max_pages = int(pages) if pages else 3
+            if 1 <= max_pages <= 10:
+                break
+            print("❌ Masukkan angka antara 1 sampai 10.")
+        except ValueError:
+            print("❌ Input harus angka.")
+        except KeyboardInterrupt:
+            print("\n\nDibatalkan.")
+            sys.exit(0)
+
+    return keyword, location, max_pages
+
+def scrape_jobstreet(keyword, location="", max_pages=3):
+    """Scraping khusus Jobstreet dengan stealth mode"""
+    jobs = []
     
-    try:
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
-            context = browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            )
-            page = context.new_page()
-            stealth(page)  # Menyamar sebagai browser asli
-            
-            # Coba beberapa pola URL umum
-            url_patterns = [
-                f"{url_target}/jobs?q={keyword}",
-                f"{url_target}/search?q={keyword}",
-                f"{url_target}/job/search?keyword={keyword}",
-                f"{url_target}?q={keyword}"
+    # Bangun URL pencarian Jobstreet
+    params = f"?keyword={quote_plus(keyword)}"
+    if location:
+        params += f"&location={quote_plus(location)}"
+    
+    target_url = f"{JOBSTREET_SEARCH_URL}{params}"
+    
+    logger.info(f"Mencari: '{keyword}' di {location if location else 'Seluruh Indonesia'}...")
+    logger.info(f"URL: {target_url}")
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(
+            headless=True,
+            args=[
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--no-first-run',
+                '--no-zygote',
+                '--disable-gpu'
             ]
-            
-            success = False
-            for pattern in url_patterns:
-                try:
-                    logger.info(f"Mencoba URL: {pattern}")
-                    page.goto(pattern, timeout=60000, wait_until="domcontentloaded")
-                    page.wait_for_load_state("networkidle", timeout=30000)
-                    success = True
-                    break
-                except PlaywrightTimeoutError:
-                    logger.warning(f"Timeout pada URL: {pattern}, mencoba pola berikutnya...")
+        )
+        
+        context = browser.new_context(
+            viewport={'width': 1920, 'height': 1080},
+            user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        )
+        
+        page = context.new_page()
+        
+        # Aktifkan stealth mode
+        try:
+            stealth_sync(page)
+        except Exception as e:
+            logger.warning(f"Gagal mengaktifkan stealth_sync: {e}. Melanjutkan tanpa stealth penuh.")
+
+        try:
+            for page_num in range(1, max_pages + 1):
+                if page_num > 1:
+                    next_url = f"{target_url}&page={page_num}"
+                    logger.info(f"Membuka halaman {page_num}: {next_url}")
+                    page.goto(next_url, wait_until='networkidle', timeout=30000)
+                else:
+                    logger.info(f"Membuka halaman 1...")
+                    page.goto(target_url, wait_until='networkidle', timeout=30000)
+
+                time.sleep(random.uniform(2, 4))
+                
+                job_cards = page.query_selector_all(SELECTORS['job_card'])
+                
+                if not job_cards:
+                    logger.warning(f"Tidak ditemukan lowongan di halaman {page_num}.")
+                    if page.query_selector(SELECTORS['error_msg']):
+                        logger.error("Website mendeteksi bot atau tidak ada hasil.")
+                        break
                     continue
-            
-            if not success:
-                logger.error("Gagal mengakses semua pola URL")
-                browser.close()
-                return data_loker
-            
-            # Scroll halaman untuk memuat konten dinamis
-            page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-            page.wait_for_timeout(2000)  # Tunggu 2 detik setelah scroll
-            
-            tree = HTMLParser(page.content())
-            
-            # --- SESUAIKAN CSS SELECTOR DI BAWAH INI DENGAN WEBSITE TARGET ---
-            # Contoh struktur umum (misal: Glints/Jobstreet/LinkedIn)
-            selectors = {
-                'card': ['.job-card', '.job-item', '[data-testid="job-card"]', '.job-listing', '.vacancy-card'],
-                'title': ['h2', 'h3', '.job-title', 'a.title', '.position-title'],
-                'company': ['.company-name', '.company', 'span.company', '.employer-name'],
-                'link': ['a[href*="/job/"]', 'a.job-link', 'a[href*="/jobs/"]', '.job-link a'],
-                'location': ['.location', '.job-location', 'span.location', '.city']
-            }
-            
-            job_cards = []
-            for card_selector in selectors['card']:
-                job_cards = tree.css(card_selector)
-                if job_cards:
-                    break
-            
-            for card in job_cards:
-                title_el = None
-                company_el = None
-                link_el = None
-                location_el = None
-                
-                # Cari elemen dengan berbagai selector
-                for title_selector in selectors['title']:
-                    title_el = card.css_first(title_selector)
-                    if title_el:
-                        break
-                
-                for company_selector in selectors['company']:
-                    company_el = card.css_first(company_selector)
-                    if company_el:
-                        break
-                
-                for link_selector in selectors['link']:
-                    link_el = card.css_first(link_selector)
-                    if link_el:
-                        break
-                
-                for location_selector in selectors['location']:
-                    location_el = card.css_first(location_selector)
-                    if location_el:
-                        break
-                
-                if title_el:
-                    link = link_el.attributes.get('href') if link_el else "N/A"
-                    # Pastikan link absolut
-                    if link != "N/A" and not link.startswith('http'):
-                        link = url_target + link if link.startswith('/') else f"{url_target}/{link}"
+
+                logger.info(f"Ditemukan {len(job_cards)} lowongan di halaman {page_num}.")
+
+                for idx, card in enumerate(job_cards):
+                    try:
+                        title_el = card.query_selector(SELECTORS['job_title'])
+                        company_el = card.query_selector(SELECTORS['company_name'])
+                        loc_el = card.query_selector(SELECTORS['location'])
+                        salary_el = card.query_selector(SELECTORS['salary'])
+                        
+                        link_el = card.query_selector('a')
+                        job_link = link_el.get_attribute('href') if link_el else ""
+                        if job_link and not job_link.startswith('http'):
+                            job_link = urljoin(JOBSTREET_BASE_URL, job_link)
+
+                        job_data = {
+                            'no': len(jobs) + 1,
+                            'judul': title_el.inner_text().strip() if title_el else "Tidak ada judul",
+                            'perusahaan': company_el.inner_text().strip() if company_el else "Rahasia / Tidak disebutkan",
+                            'lokasi': loc_el.inner_text().strip() if loc_el else "-",
+                            'gaji': salary_el.inner_text().strip() if salary_el else "-",
+                            'link': job_link,
+                            'tanggal': datetime.now().strftime('%Y-%m-%d')
+                        }
+                        
+                        if not any(j['link'] == job_link for j in jobs):
+                            jobs.append(job_data)
+                            print(f"   [{len(jobs)}] {job_data['judul']} - {job_data['perusahaan']} ({job_data['lokasi']})")
                     
-                    data_loker.append({
-                        "Posisi": title_el.text(strip=True),
-                        "Perusahaan": company_el.text(strip=True) if company_el else "N/A",
-                        "Lokasi": location_el.text(strip=True) if location_el else "N/A",
-                        "Link": link
-                    })
-            # ------------------------------------------------------------------
-            
-            logger.info(f"Ditemukan {len(data_loker)} lowongan dari halaman pertama")
-            
-            # Scraping halaman berikutnya (jika ada)
-            for page_num in range(2, max_pages + 1):
-                try:
-                    next_button = page.css_first('a.next, button.next, .pagination-next a, [rel="next"]')
-                    if not next_button:
-                        logger.info(f"Tidak ada halaman berikutnya setelah halaman {page_num - 1}")
+                    except Exception as e:
+                        logger.debug(f"Gagal memproses satu kartu lowongan: {e}")
+                        continue
+
+                if page_num < max_pages:
+                    next_btn = page.query_selector(SELECTORS['next_page'])
+                    if not next_btn:
+                        logger.info("Tidak ada halaman berikutnya.")
                         break
                     
-                    next_link = next_button.attributes.get('href')
-                    if next_link:
-                        page.goto(next_link, timeout=60000, wait_until="domcontentloaded")
-                        page.wait_for_load_state("networkidle", timeout=30000)
-                        page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-                        page.wait_for_timeout(2000)
-                        
-                        tree = HTMLParser(page.content())
-                        # Proses kartu lowongan seperti sebelumnya
-                        for card_selector in selectors['card']:
-                            job_cards = tree.css(card_selector)
-                            if job_cards:
-                                break
-                        
-                        for card in job_cards:
-                            # (Proses yang sama seperti di atas)
-                            title_el = None
-                            company_el = None
-                            link_el = None
-                            location_el = None
-                            
-                            for title_selector in selectors['title']:
-                                title_el = card.css_first(title_selector)
-                                if title_el:
-                                    break
-                            
-                            for company_selector in selectors['company']:
-                                company_el = card.css_first(company_selector)
-                                if company_el:
-                                    break
-                            
-                            for link_selector in selectors['link']:
-                                link_el = card.css_first(link_selector)
-                                if link_el:
-                                    break
-                            
-                            for location_selector in selectors['location']:
-                                location_el = card.css_first(location_selector)
-                                if location_el:
-                                    break
-                            
-                            if title_el:
-                                link = link_el.attributes.get('href') if link_el else "N/A"
-                                if link != "N/A" and not link.startswith('http'):
-                                    link = url_target + link if link.startswith('/') else f"{url_target}/{link}"
-                                
-                                data_loker.append({
-                                    "Posisi": title_el.text(strip=True),
-                                    "Perusahaan": company_el.text(strip=True) if company_el else "N/A",
-                                    "Lokasi": location_el.text(strip=True) if location_el else "N/A",
-                                    "Link": link
-                                })
-                        
-                        logger.info(f"Total sementara: {len(data_loker)} lowongan")
-                    else:
-                        break
-                except Exception as e:
-                    logger.warning(f"Error saat mengakses halaman {page_num}: {e}")
-                    break
-            
+        except Exception as e:
+            logger.error(f"Terjadi kesalahan saat scraping: {e}")
+        
+        finally:
             browser.close()
-            
-    except Exception as e:
-        logger.error(f"Terjadi kesalahan: {e}")
-    
-    return data_loker
 
+    return jobs
 
-def save_to_csv(data: List[Dict[str, str]], filename: str = "hasil_loker.csv") -> bool:
-    """
-    Menyimpan data lowongan ke file CSV.
-    
-    Args:
-        data: List of dict berisi data lowongan
-        filename: Nama file output
-    
-    Returns:
-        True jika berhasil, False jika gagal
-    """
-    if not data:
-        logger.warning("Tidak ada data untuk disimpan")
-        return False
-    
-    try:
-        df = pd.DataFrame(data)
-        df.to_csv(filename, index=False, encoding="utf-8-sig")
-        logger.info(f"Berhasil menyimpan {len(data)} lowongan ke '{filename}'")
-        return True
-    except Exception as e:
-        logger.error(f"Gagal menyimpan ke CSV: {e}")
-        return False
+def save_to_csv(jobs, keyword, location):
+    """Simpan hasil ke CSV"""
+    if not jobs:
+        print("\n❌ Tidak ada data untuk disimpan.")
+        return None
 
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    loc_suffix = location.replace(" ", "_").lower() if location else "all"
+    filename = f"loker_{keyword.lower().replace(' ', '_')}_{loc_suffix}_{timestamp}.csv"
+    
+    os.makedirs('output', exist_ok=True)
+    filepath = os.path.join('output', filename)
 
-def main():
-    """Fungsi utama untuk menjalankan scraper dengan menu interaktif."""
-    print("=" * 60)
-    print("🔍 PENCARI LOWONGAN KERJA INTERAKTIF")
-    print("=" * 60)
+    with open(filepath, 'w', newline='', encoding='utf-8-sig') as f:
+        fieldnames = ['no', 'judul', 'perusahaan', 'lokasi', 'gaji', 'link', 'tanggal']
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(jobs)
+
+    print("\n" + "="*60)
+    print(f"✅ SELESAI!")
+    print(f"   Total lowongan ditemukan: {len(jobs)}")
+    print(f"   File hasil: {filepath}")
+    print(f"   Buka file tersebut dengan Excel atau gunakan script auto_cv_selector.py")
+    print("="*60)
     
-    # Input dari user
-    target_site = input("\n📌 Masukkan URL website job portal (contoh: https://www.jobstreet.co.id): ").strip()
-    if not target_site:
-        target_site = "https://www.jobstreet.co.id"
+    return filepath
+
+def interactive_selection(jobs, csv_path):
+    """Menu interaktif untuk memilih lowongan yang akan dilamar"""
+    if not jobs:
+        return
+
+    print("\n📋 DAFTAR LOWONGAN DITEMUKAN:")
+    print("-" * 60)
+    for job in jobs:
+        print(f"{job['no']}. {job['judul']} | {job['perusahaan']} | {job['lokasi']}")
     
-    keyword = input("🔎 Kata kunci pencarian (contoh: admin, data analyst): ").strip()
-    if not keyword:
-        print("❌ Keyword tidak boleh kosong!")
+    print("\n💡 PILIHAN:")
+    print("   - Ketik nomor lowongan (misal: 1 atau 1,3,5)")
+    print("   - Ketik 'all' untuk memilih semua")
+    print("   - Ketik 'q' untuk keluar")
+    
+    choice = input("\nPilih lowongan yang ingin dilamar: ").strip().lower()
+    
+    if choice == 'q':
+        print("Keluar dari program.")
         return
     
-    try:
-        max_pages = int(input("📄 Jumlah maksimal halaman yang akan di-scrape (default: 3): ").strip() or "3")
-    except ValueError:
-        max_pages = 3
-    
-    output_file = f"loker_{keyword.replace(' ', '_')}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv"
-    
-    print(f"\n⏳ Mencari lowongan untuk '{keyword}' di {target_site}...")
-    hasil = scrape_loker(target_site, keyword, max_pages=max_pages)
-    
-    if hasil:
-        save_to_csv(hasil, output_file)
-        print(f"\n{'='*60}")
-        print(f"✅ SELESAI!")
-        print(f"   Total lowongan ditemukan: {len(hasil)}")
-        print(f"   File hasil: {output_file}")
-        print(f"   Buka file tersebut dengan Excel atau Google Sheets")
-        print(f"{'='*60}\n")
-        
-        # Menu interaktif untuk memilih lowongan
-        print("📋 DAFTAR LOWONGAN DITEMUKAN:")
-        print("-" * 60)
-        for i, loker in enumerate(hasil, 1):
-            print(f"{i:3}. {loker['Posisi']} - {loker['Perusahaan']} ({loker['Lokasi']})")
-        
-        print("\n" + "=" * 60)
-        print("🎯 PILIH LOWONGAN UNTUK DILAMAR")
-        print("=" * 60)
-        print("Masukkan nomor lowongan (pisahkan dengan koma untuk multiple):")
-        print("Contoh: 1,3,5 atau ketik 'all' untuk semua lowongan")
-        print("Ketik 'q' untuk keluar")
-        
-        pilihan = input("\n➤ Pilihan Anda: ").strip().lower()
-        
-        if pilihan == 'q':
-            print("👋 Terima kasih telah menggunakan program ini!")
-            return
-        
-        lowongan_terpilih = []
-        if pilihan == 'all':
-            lowongan_terpilih = hasil
-            print(f"✅ Memilih semua {len(lowongan_terpilih)} lowongan")
-        else:
-            try:
-                nomor_list = [int(x.strip()) for x in pilihan.split(',')]
-                for nomor in nomor_list:
-                    if 1 <= nomor <= len(hasil):
-                        lowongan_terpilih.append(hasil[nomor - 1])
-                    else:
-                        print(f"⚠️  Nomor {nomor} tidak valid (max: {len(hasil)})")
-                
-                if not lowongan_terpilih:
-                    print("❌ Tidak ada lowongan valid yang dipilih!")
-                    return
-                    
-                print(f"✅ Berhasil memilih {len(lowongan_terpilih)} lowongan")
-            except ValueError:
-                print("❌ Format input tidak valid! Gunakan angka dipisahkan koma.")
-                return
-        
-        # Simpan lowongan terpilih
-        if lowongan_terpilih:
-            file_terpilih = f"selected_{output_file}"
-            save_to_csv(lowongan_terpilih, file_terpilih)
-            print(f"\n📝 Lowongan terpilih disimpan di: {file_terpilih}")
-            
-            # Tawarkan untuk generate CV
-            print("\n" + "=" * 60)
-            print("📄 GENERATE CV OTOMATIS?")
-            print("=" * 60)
-            jawab = input("Apakah Anda ingin generate CV untuk lowongan terpilih? (y/n): ").strip().lower()
-            
-            if jawab == 'y':
-                print("\n🔄 Menjalankan auto_cv_selector.py...")
-                import subprocess
-                subprocess.run(['python3', 'auto_cv_selector.py'])
-            else:
-                print("\n💡 Tips: Jalankan 'python3 auto_cv_selector.py' nanti untuk generate CV")
-        
-        print(f"\n{'='*60}")
-        print("🎉 PROGRAM SELESAI!")
-        print(f"{'='*60}")
+    selected_jobs = []
+    if choice == 'all':
+        selected_jobs = jobs
+        print(f"✅ Memilih semua {len(jobs)} lowongan.")
     else:
-        print("\n❌ Tidak ada hasil. Periksa:")
-        print("  1. CSS Selector sesuai dengan website target")
-        print("  2. URL target dapat diakses")
-        print("  3. Struktur HTML website target")
-        print("  4. Coba gunakan keyword yang berbeda")
+        try:
+            indices = [int(x.strip()) for x in choice.split(',')]
+            selected_jobs = [j for j in jobs if j['no'] in indices]
+            if not selected_jobs:
+                print("❌ Nomor tidak valid.")
+                return
+            print(f"✅ Memilih {len(selected_jobs)} lowongan.")
+        except ValueError:
+            print("❌ Format input salah. Gunakan angka dipisah koma (contoh: 1,2,3).")
+            return
 
+    selection_file = csv_path.replace('.csv', '_selected.txt')
+    with open(selection_file, 'w') as f:
+        for job in selected_jobs:
+            f.write(f"{job['link']}\n")
+    
+    print(f"\n💾 Pilihan disimpan di: {selection_file}")
+    print("🚀 Langkah selanjutnya:")
+    print(f"   python3 auto_cv_selector.py {selection_file}")
+
+def main():
+    try:
+        keyword, location, max_pages = get_user_input()
+        jobs = scrape_jobstreet(keyword, location, max_pages)
+        
+        if jobs:
+            csv_path = save_to_csv(jobs, keyword, location)
+            if csv_path:
+                interactive_selection(jobs, csv_path)
+        else:
+            print("\n❌ Tidak ada lowongan ditemukan. Coba kata kunci lain atau lokasi berbeda.")
+            
+    except KeyboardInterrupt:
+        print("\n\n⚠️ Program dihentikan oleh pengguna.")
+        sys.exit(0)
+    except Exception as e:
+        logger.error(f"Terjadi kesalahan fatal: {e}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
